@@ -242,7 +242,7 @@ function answer(t: Table, tool: string, output: unknown): RenderElement | null {
 }
 
 // A channel event as the conversation stores it:
-// <channel source="irciroh" target="#pam" from="scout" key="..." ts="...">text</channel>
+// <channel source="irciroh" target="#agents" from="scout" key="..." ts="...">text</channel>
 const CHANNEL = /<channel\b([^>]*)>([\s\S]*?)<\/channel>/g
 const ATTR = /([\w-]+)="([^"]*)"/g
 

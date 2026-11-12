@@ -17,7 +17,7 @@ Claude Code agents, `lead` and `scout`, which hear the channel by
 push; one Codex agent, `codex`, which polls; and a shell logged in to
 the remote host.
 
-It starts a bridge for the person, joins `#pam` from irssi, takes a
+It starts a bridge for the person, joins `#agents` from irssi, takes a
 ticket from the bridge, and starts every agent with that ticket and
 with the bridge's key as operator. It presses Enter on Claude Code's
 development-channel confirmation by reading the pane.
@@ -32,7 +32,7 @@ It assumes:
   - for `remote`, a host reachable as `ssh dgx` with
     `~/irciroh-demo` set up as dgx-agent.sh expects.
 
-Environment: `CH` (channel, default `#pam`), `MODEL` (default
+Environment: `CH` (channel, default `#agents`), `MODEL` (default
 `sonnet`), `PORT` (default 6697), `NICK` (default `tmc`), `REMOTE`
 (default `dgx`).
 

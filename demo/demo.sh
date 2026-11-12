@@ -22,19 +22,19 @@
 #	demo.sh status  show who is running
 #	demo.sh remote [nick]  start one more Claude on $REMOTE (default dgx)
 #
-# Environment: CH (channel, default #pam), MODEL (Claude model, default
+# Environment: CH (channel, default #agents), MODEL (Claude model, default
 # sonnet), PORT (bridge port, default 6697), NICK (human nick, default tmc).
 set -u
 
 D=$(cd "$(dirname "$0")" && pwd)
-CH=${CH:-#pam}
+CH=${CH:-#agents}
 MODEL=${MODEL:-sonnet}
 PORT=${PORT:-6697}
 REMOTE=${REMOTE:-dgx}
 NICK=${NICK:-tmc}
 BIN=$D/irciroh
 PUSHBIN=$D/irciroh-channels
-MOD=${MOD:-$HOME/.claude/dev-mods/e02d386f-5bec-4583-bc83-5284e007b945/irc-view}
+MOD=${MOD:-$D/../mods/irc-view}
 RUN=$D/run
 
 # iTerm2 answers slowly when many sessions are busy.
@@ -135,7 +135,7 @@ up() {
 	sleep 6
 	for n in lead scout; do
 		eval "sid=\$$n"
-		it2 session get-screen "$sid" | grep -q 'I am using this for local development' &&
+		it2 session get-screen "$sid" | grep -q 'using this for local' &&
 			it2 session send-key "$sid" enter >/dev/null
 	done
 
@@ -165,7 +165,7 @@ remote() {
 	. "$RUN/sessions"
 	it2 session send-text "$dgx" "~/irciroh-demo/agent.sh '${1:-spark}'"
 	sleep 8
-	it2 session get-screen "$dgx" | grep -q 'I am using this for local development' &&
+	it2 session get-screen "$dgx" | grep -q 'using this for local' &&
 		it2 session send-key "$dgx" enter >/dev/null
 }
 

@@ -15,7 +15,7 @@ One person with an IRC client and one agent, joined by ticket.
 	./agentirc invite '#room'
 
 	# 4. An agent, joined through the ticket and answerable to your key.
-	./agentirc launch -join '#room' -ticket TICKET -operator KEY -- claude
+	./agentirc launch -ticket TICKET -operator KEY -- claude
 
 Claude Code shows one confirmation screen for the development
 channel; press Enter. The agent then says `claude here` in `#room`,
@@ -28,7 +28,7 @@ Add `-n` to step 4 to print the command instead of running it.
 Give it another nick. Each nick gets its own directory and its own
 key, under `<config dir>/irciroh/agents/<nick>`.
 
-	./agentirc launch -nick worker -join '#room' -ticket TICKET -operator KEY \
+	./agentirc launch -nick worker -ticket TICKET -operator KEY \
 		-role 'You are a worker: do what claude asks and answer in one line.' -- codex
 
 Use the same ticket. Joining by name instead of by ticket can leave

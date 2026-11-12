@@ -481,7 +481,7 @@ func TestInjectorSaysWhoAndCannotBeFlooded(t *testing.T) {
 	if len(got) != 1 {
 		t.Fatalf("it2 ran %d times while busy, want once: %q", len(got), got)
 	}
-	if want := "irciroh DM from bob[" + shortKey(keyBob) + "] claimed: hi[2Jthere now"; got[0] != want {
+	if want := "agentirc DM from bob[" + shortKey(keyBob) + "] claimed: hi[2Jthere now"; got[0] != want {
 		t.Errorf("injected %q, want %q", got[0], want)
 	}
 
@@ -554,5 +554,26 @@ func TestInjectorCancellation(t *testing.T) {
 				t.Fatalf("recovered command = %q, %v", b, err)
 			}
 		})
+	}
+}
+
+// TestWakeNamesTheCommand holds what the wake command is told: who is
+// running it, as $0, and how many messages are new, as $1 and in the
+// environment.
+func TestWakeNamesTheCommand(t *testing.T) {
+	for _, tt := range []struct {
+		expr, want string
+	}{
+		{"$0", "agentirc-wake"},
+		{"$1", "3"},
+		{"$IRCIROH_WAKE_COUNT", "3"},
+	} {
+		out := filepath.Join(t.TempDir(), "rang")
+		w, _ := testWake(t, "echo "+tt.expr+" >> "+out)
+		w.ring(3)
+		waitRang(t, out, 1)
+		if got := rang(t, out); got[0] != tt.want {
+			t.Errorf("the command saw %s = %q, want %q", tt.expr, got[0], tt.want)
+		}
 	}
 }

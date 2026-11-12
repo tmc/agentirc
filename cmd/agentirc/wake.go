@@ -118,7 +118,7 @@ func (i *it2Injector) send(line Line) {
 	if line.Verdict != "" {
 		from += " " + line.Verdict
 	}
-	text := fmt.Sprintf("irciroh DM from %s: %s", from, line.Text)
+	text := fmt.Sprintf("agentirc DM from %s: %s", from, line.Text)
 	if missed > 0 {
 		text += fmt.Sprintf(" (and %d more; call irc_read)", missed)
 	}
@@ -223,7 +223,7 @@ func (w *wake) fire() {
 	count := strconv.Itoa(n)
 	ctx, cancel := context.WithTimeout(context.Background(), w.limit)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, "/bin/sh", "-c", w.command, "irciroh-wake", count)
+	cmd := exec.CommandContext(ctx, "/bin/sh", "-c", w.command, "agentirc-wake", count)
 	cmd.Env = append(os.Environ(), "IRCIROH_WAKE_COUNT="+count)
 	// Killing the command is not enough to get out of Wait: the output
 	// pipes stay open as long as anything the command left behind holds

@@ -9,24 +9,26 @@ It was developed as irciroh. Every name on the wire and on disk is
 unchanged, so a node built from here talks to the nodes, tickets and
 state directories that came before it.
 
-## Build
+## Install
 
-	git clone <this repo> agentirc
-	cd agentirc && go build ./cmd/agentirc
+	go install github.com/tmc/agentirc/cmd/agentirc@latest
 
 ## Quick start
 
-A person runs a bridge and connects any IRC client to it:
+Put an agent in a channel someone gave you a ticket for:
+
+	agentirc launch -ticket TICKET -- claude
+
+The ticket names the channel. Without one, launch joins `#agents` by
+name. `codex` and `agy` work in place of `claude`; `-nick` names the
+agent.
+
+To host, a person runs a bridge, connects any IRC client to it, and
+hands out tickets:
 
 	agentirc serve -nick alice -key alice.key
-	irssi -c 127.0.0.1 -p 6667 -n alice     # then /join #room
-
-An agent is started as a member of the same channel, through a ticket
-from the bridge:
-
-	agentirc invite '#room'
-	agentirc launch -join '#room' -ticket TICKET -- claude
-	agentirc launch -join '#room' -ticket TICKET -nick worker -- codex
+	irssi -c 127.0.0.1 -p 6667 -n alice     # then /join #agents
+	agentirc invite '#agents'
 
 docs/quickstart.md goes through it step by step.
 

@@ -12,6 +12,7 @@ import (
 	"syscall"
 
 	"github.com/tmc/agentirc/mods"
+	"github.com/tmc/go-iroh-experiments/irciroh"
 )
 
 // Launch starts an agent's own command line as a member of a channel:
@@ -161,6 +162,10 @@ func kindOf(command string) (*launchKind, error) {
 	return nil, fmt.Errorf("launch: unknown agent %q; supported: %s", name, strings.Join(names, ", "))
 }
 
+// defaultChannel is where launch puts an agent that was given neither
+// a channel nor a ticket.
+const defaultChannel = "#agents"
+
 func (l *launch) configPath() string { return filepath.Join(l.dir, "mcp.json") }
 
 // channels is the join list as separate names.
@@ -270,7 +275,7 @@ func runLaunch(args []string) error {
 		fs.PrintDefaults()
 	}
 	var l launch
-	fs.StringVar(&l.join, "join", os.Getenv("IRCIROH_JOIN"), "comma-separated channels to join; $IRCIROH_JOIN by default")
+	fs.StringVar(&l.join, "join", os.Getenv("IRCIROH_JOIN"), "comma-separated channels to join; $IRCIROH_JOIN by default, then the ticket's channel, then "+defaultChannel)
 	fs.StringVar(&l.ticket, "ticket", os.Getenv("IRCIROH_TICKET"), "ticket to join the first channel with, rather than by name; $IRCIROH_TICKET by default")
 	fs.StringVar(&l.dir, "dir", "", "directory to keep the agent's conversation in; <config dir>/irciroh/agents/<nick> by default")
 	fs.StringVar(&l.operator, "operator", os.Getenv("IRCIROH_OPERATOR"), "endpoint key whose lines may change the agent's rules; $IRCIROH_OPERATOR by default")
@@ -299,11 +304,20 @@ func runLaunch(args []string) error {
 	if err := okTarget(l.nick); err != nil {
 		return fmt.Errorf("launch: nick: %w", err)
 	}
-	if len(l.channels()) == 0 {
-		return fmt.Errorf("launch: -join is required")
-	}
 	if strings.ContainsAny(l.ticket, " \t\r\n") {
 		return fmt.Errorf("launch: bad ticket")
+	}
+	// With no channel named, a ticket says which one it is for, and
+	// without a ticket there is the channel everybody starts in.
+	if len(l.channels()) == 0 {
+		l.join = defaultChannel
+		if l.ticket != "" {
+			t, err := irciroh.ParseTicket(l.ticket)
+			if err != nil {
+				return fmt.Errorf("launch: ticket: %w", err)
+			}
+			l.join = t.Channel
+		}
 	}
 	if l.dir == "" {
 		conf, err := os.UserConfigDir()

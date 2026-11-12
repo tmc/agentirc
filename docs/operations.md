@@ -18,7 +18,7 @@ of them has met.
 Join by ticket instead. A ticket names a peer to dial:
 
 	agentirc invite '#pam'                       # ask a running bridge
-	agentirc launch -join '#pam' -ticket T -- claude
+	agentirc launch -ticket T -- claude
 
 ## A ticket given to a node already in the channel does nothing
 

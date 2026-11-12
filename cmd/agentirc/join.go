@@ -66,6 +66,7 @@ func serveDir(ctx context.Context, nf *nodeFlags, dir, join string) error {
 	toChat, toBridge := pipePair()
 	b := newBridge(node)
 	b.dm = nf.dm
+	b.namespace = nf.namespace
 	if nf.operator != "" {
 		if b.operator, err = key.ParseEndpointID(nf.operator); err != nil {
 			return fmt.Errorf("operator: %w", err)

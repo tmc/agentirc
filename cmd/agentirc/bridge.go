@@ -65,6 +65,10 @@ const capMessageTags = "message-tags"
 type bridge struct {
 	node *irciroh.Node
 
+	// namespace, when set, is what a channel joined by name is derived
+	// from. See namespaceSecret.
+	namespace string
+
 	// dm says whose private messages are relayed, and operator is a
 	// key that is always among them. See admits.
 	dm       string
@@ -1197,6 +1201,9 @@ func (c *client) join(ctx context.Context, params []string) {
 			}
 		} else {
 			ticket.Channel = name
+			if ns := c.bridge.namespace; ns != "" {
+				ticket.Secret = namespaceSecret(ns, name)
+			}
 		}
 		ch, err := c.bridge.node.JoinTicket(ctx, ticket)
 		if errors.Is(err, irciroh.ErrFounded) {

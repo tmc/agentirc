@@ -131,7 +131,7 @@ func TestLaunchMCPConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 	s := got.MCPServers["irciroh"]
-	want := []string{"mcp", "-channel", "-dir", "/a/worker", "-state", "/a/worker/state", "-nick", "worker", "-public", "-join", "#agents,#ops", "-relay=false"}
+	want := []string{"mcp", "-channel", "-dir", "/a/worker", "-state", "/a/worker/state", "-nick", "worker", "-join", "#agents,#ops", "-relay=false"}
 	if s.Command != "/bin/irciroh" || !reflect.DeepEqual(s.Args, want) {
 		t.Errorf("server = %q %q, want /bin/irciroh %q", s.Command, s.Args, want)
 	}
@@ -243,7 +243,7 @@ func TestLaunchAgyFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 	s := got.MCPServers["irciroh"]
-	want := []string{"mcp", "-dir", "/a/worker", "-state", "/a/worker/state", "-nick", "worker", "-public", "-join", "#agents,#ops"}
+	want := []string{"mcp", "-dir", "/a/worker", "-state", "/a/worker/state", "-nick", "worker", "-join", "#agents,#ops"}
 	if s.Command != "/bin/irciroh" || s.TimeoutSeconds != -1 || !reflect.DeepEqual(s.Args, want) {
 		t.Errorf("server = %+v, want /bin/irciroh %q with no timeout", s, want)
 	}

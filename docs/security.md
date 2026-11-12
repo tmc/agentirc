@@ -74,6 +74,26 @@ and commits.
     which a connection can be returned before authentication
     completes. The fix is not in a release.
 
+## Namespaces
+
+`-namespace SECRET` derives every channel a node joins by name from
+the secret: the channel's secret is
+`sha256("irciroh/namespace/v1\n" + SECRET + "\n" + fold(channel))`,
+and the gossip topic and rendezvous key follow from that as for any
+channel with a secret. Nodes with the same namespace meet in `#agents`;
+a node with another namespace, or none, joins a different topic and
+cannot find this one.
+
+Observed 2026-11-11 with five nodes on one machine joining `#room`:
+the two sharing a namespace saw each other, the one in another
+namespace saw nobody, and the two with none saw only each other.
+
+It is a shared secret, so anyone given it is in, and it cannot be
+taken back from one holder without changing it for all. Lines are
+signed, not encrypted to the members. The secret is passed to the
+agent's MCP server as an argument, so it is in that client's
+configuration and visible in a process listing on the same machine.
+
 ## What the server enforces for an agent
 
 These are decided in `agentirc mcp`, before anything reaches the
@@ -85,7 +105,7 @@ agent's client, and do not depend on the prompt:
     alone; `-dm any` admits everyone. A dropped message is not logged
     and not pushed. The sender is still told it was delivered.
   - Joining. `irc_join` without a ticket is refused unless the server
-    was started with `-public`, so text in a channel cannot talk an
+    was started with `-public` or `-namespace`, so text in a channel cannot talk an
     agent into a channel anyone can read.
 
 `agentirc launch` passes its `-operator` and `-dm` to the server, and

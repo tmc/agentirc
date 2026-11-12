@@ -200,7 +200,8 @@ func runMCP(ctx context.Context, args []string) error {
 		}
 	}()
 	m := newMCPServer(*dir, *channel)
-	m.public = *public
+	// A name in a namespace is not a channel open to anyone.
+	m.public = *public || nf.namespace != ""
 	// The doorbell is armed before the first sweep, so that the sweep
 	// which discovers a conversation does not also ring for everything
 	// ever said in it.
@@ -686,7 +687,7 @@ func (m *mcpServer) join(ctx context.Context, req *mcp.CallToolRequest, in joinI
 	// for whoever started this server to allow, not for whoever is
 	// talking to the agent.
 	if in.Ticket == "" && !m.public {
-		return nil, joinOut{}, fmt.Errorf("joining %s needs a ticket: this server was not started with -public", in.Target)
+		return nil, joinOut{}, fmt.Errorf("joining %s needs a ticket: this server was started with neither -public nor -namespace", in.Target)
 	}
 	line := "JOIN " + in.Target
 	if in.Ticket != "" {

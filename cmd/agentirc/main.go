@@ -239,6 +239,8 @@ func main() {
 		err = runMCP(ctx, os.Args[2:])
 	case "launch":
 		err = runLaunch(os.Args[2:])
+	case "namespace":
+		err = runNamespace(os.Args[2:])
 	default:
 		usage()
 	}
@@ -349,7 +351,9 @@ func runServe(ctx context.Context, args []string) error {
 	fmt.Printf("endpoint %s\n", node.ID())
 	fmt.Printf("listening for IRC clients on %s\n", ln.Addr())
 	warnOpenListener(os.Stderr, ln.Addr())
-	return newBridge(node).Serve(ctx, ln)
+	b := newBridge(node)
+	b.namespace = nf.namespace
+	return b.Serve(ctx, ln)
 }
 
 // warnOpenListener says so when the bridge can be reached from off this
@@ -372,6 +376,9 @@ func warnOpenListener(w io.Writer, addr net.Addr) {
 // files itself; everything up to the node is the same program, so they
 // take the same flags and build it the same way.
 type nodeFlags struct {
+	// namespace is a secret that channels joined by name are derived
+	// from, so that only nodes holding it meet in them.
+	namespace string
 	// dm and operator are the private message policy of a node that
 	// keeps a directory. They are set by mcp, not registered for all.
 	dm         string
@@ -404,6 +411,7 @@ type nodeFlags struct {
 
 func (n *nodeFlags) register(fs *flag.FlagSet) {
 	fs.StringVar(&n.bind, "bind", "[::]:0", "iroh endpoint bind address")
+	fs.StringVar(&n.namespace, "namespace", os.Getenv("IRCIROH_NAMESPACE"), "secret that channels joined by name are derived from, so only nodes with the same one meet in them; $IRCIROH_NAMESPACE by default")
 	fs.StringVar(&n.keyPath, "key", "", "endpoint key file; generated when missing, and defaulted to <state>/key by join")
 	fs.StringVar(&n.nick, "nick", "", "nick to chat as")
 	fs.StringVar(&n.state, "state", defaultStateDir(), "directory for durable state, and under join the identity too; empty forgets kicks and channel secrets on restart")

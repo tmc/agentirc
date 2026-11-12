@@ -162,8 +162,8 @@ func kindOf(command string) (*launchKind, error) {
 	return nil, fmt.Errorf("launch: unknown agent %q; supported: %s", name, strings.Join(names, ", "))
 }
 
-// defaultChannel is where launch puts an agent that was given neither
-// a channel nor a ticket.
+// defaultChannel is where launch -public puts an agent that was given
+// no channel.
 const defaultChannel = "#agents"
 
 func (l *launch) configPath() string { return filepath.Join(l.dir, "mcp.json") }
@@ -271,11 +271,12 @@ const launchFacts = "Facts you may state when asked: " +
 func runLaunch(args []string) error {
 	fs := flag.NewFlagSet("launch", flag.ExitOnError)
 	fs.Usage = func() {
-		fmt.Fprintf(fs.Output(), "usage: agentirc launch [-nick name] [-join #a,#b] [-ticket ticket] [-dir path] [-operator key] [-role text] [-mod dir] [-n] [node flags] -- command [args...]\n")
+		fmt.Fprintf(fs.Output(), "usage: agentirc launch [-nick name] [-join #a,#b] [-ticket ticket] [-public] [-dir path] [-operator key] [-role text] [-mod dir] [-n] [node flags] -- command [args...]\n")
 		fs.PrintDefaults()
 	}
 	var l launch
-	fs.StringVar(&l.join, "join", os.Getenv("IRCIROH_JOIN"), "comma-separated channels to join; $IRCIROH_JOIN by default, then the ticket's channel, then "+defaultChannel)
+	fs.StringVar(&l.join, "join", os.Getenv("IRCIROH_JOIN"), "comma-separated channels to join; $IRCIROH_JOIN by default, then the ticket's channel, then with -public "+defaultChannel)
+	public := fs.Bool("public", false, "join by name, without a ticket, channels that anyone can read and join")
 	fs.StringVar(&l.ticket, "ticket", os.Getenv("IRCIROH_TICKET"), "ticket to join the first channel with, rather than by name; $IRCIROH_TICKET by default")
 	fs.StringVar(&l.dir, "dir", "", "directory to keep the agent's conversation in; <config dir>/irciroh/agents/<nick> by default")
 	fs.StringVar(&l.operator, "operator", os.Getenv("IRCIROH_OPERATOR"), "endpoint key whose lines may change the agent's rules; $IRCIROH_OPERATOR by default")
@@ -307,8 +308,11 @@ func runLaunch(args []string) error {
 	if strings.ContainsAny(l.ticket, " \t\r\n") {
 		return fmt.Errorf("launch: bad ticket")
 	}
-	// With no channel named, a ticket says which one it is for, and
-	// without a ticket there is the channel everybody starts in.
+	// A channel joined by name is open to anyone who knows the name, so
+	// that has to be asked for. A ticket says which channel it is for.
+	if l.ticket == "" && !*public {
+		return fmt.Errorf("launch: no ticket: get one with agentirc invite, or pass -public to join by name a channel anyone can read and join")
+	}
 	if len(l.channels()) == 0 {
 		l.join = defaultChannel
 		if l.ticket != "" {

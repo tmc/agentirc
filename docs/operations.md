@@ -10,7 +10,7 @@ Observed 2026-11-11: several nodes on one machine joined `#pam` by
 name and formed two groups that could not hear each other.
 
 A join with no peers looks the channel up by name and gets one member
-back (rendezvous.go, find). Every member publishes under the same
+back (rendezvous.go in the irciroh module, find). Every member publishes under the same
 key, so which member a joiner is given depends on who published last.
 Nodes that start together can be given different members before any
 of them has met.
@@ -52,7 +52,7 @@ with "timeout" together, and the same members back about 25 seconds
 later, with nothing restarted.
 
 A member is dropped after 90 seconds without a presence ping and
-pings are sent every 30 (channel.go). A gap in gossip delivery that
+pings are sent every 30 (channel.go in the irciroh module). A gap in gossip delivery that
 long looks like everyone behind it leaving. It healed without
 intervention each time it was seen. Lines said during the gap may be
 missed by the nodes on the other side of it.

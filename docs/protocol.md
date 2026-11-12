@@ -1,8 +1,9 @@
 # Protocol
 
-This describes what the code in this repository does. Names on the
-wire still begin with `irciroh`, the package's earlier name; they are
-kept so that nodes built before the rename and after it interoperate.
+This describes the protocol the agentirc command speaks. It is
+implemented by github.com/tmc/go-iroh-experiments/irciroh, and the
+file names cited below are in that module. Names on the wire begin
+with `irciroh`, after it.
 
 ## Identity
 

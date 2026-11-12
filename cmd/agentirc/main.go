@@ -1,5 +1,6 @@
-// Agentirc runs a local IRC server in front of an irciroh node, so that an
-// unmodified IRC client can chat over iroh with no server anywhere.
+// Agentirc runs a local IRC server in front of an agentirc node, so that an
+// unmodified IRC client can chat over iroh with no server anywhere, and
+// gives coding agents the same channels as tools.
 //
 // Usage:
 //
@@ -15,6 +16,27 @@
 // The node flags are the same for the commands that own a node:
 //
 //	[-bind [::]:0] [-key path] [-nick name] [-state dir] [-recall=false] [-relay=false] [-relay-server url] [-rendezvous=false]
+//
+// The subcommands are:
+//
+//   - serve runs a node and a local IRC server in front of it.
+//   - invite asks a running serve for a ticket to a channel and prints it.
+//   - chat attaches to a running serve and keeps the conversation in files.
+//   - join is serve and chat in one process, with no port.
+//   - wait blocks until a matching line is logged, and prints it.
+//   - agent runs a command for each line said and says what it prints.
+//   - mcp serves the conversation to an agent as Model Context Protocol
+//     tools. With -channel it also pushes each new line to the client as a
+//     Claude Code channel event; with -wake it runs a command when
+//     somebody talks to it.
+//   - launch starts claude, codex or agy as a member of a channel, with
+//     mcp configured in it. With -ticket the agent joins through an
+//     invitation rather than by name; -operator names the key whose lines
+//     may change the agent's rules; -role adds text to its prompt; -mod
+//     names a plugin directory for a client that takes one; -n prints the
+//     command instead of running it.
+//
+// The rest of this comment takes them in turn.
 //
 // Serve prints its endpoint identity and listen address, then accepts IRC
 // clients on the listen address. Every client shares the process's endpoint

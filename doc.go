@@ -103,7 +103,7 @@
 // nobody can dial. Relays are what make an endpoint reachable from
 // outside its own network, and go-iroh leaves them off by default, so a
 // caller that wants its tickets to travel enables them
-// (iroh.WithRelayMode) - as the command irciroh does.
+// (iroh.WithRelayMode) - as the command agentirc does.
 //
 // A ticket carries the relay alone when there is one, and the endpoint's
 // IP candidates only when there is not. A peer that dials the relay

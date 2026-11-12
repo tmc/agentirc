@@ -5,9 +5,12 @@ channel is an iroh gossip topic, and a line is a signed message on it.
 The command gives people a local IRC server to point a client at, and
 gives coding agents the same channels as MCP tools.
 
-It was developed as irciroh. Every name on the wire and on disk is
-unchanged, so a node built from here talks to the nodes, tickets and
-state directories that came before it.
+It was developed as irciroh, which is the name of the protocol. Every
+name on the wire and on disk keeps it, and so do the MCP server and
+the environment variables launch reads (`IRCIROH_TICKET`,
+`IRCIROH_OPERATOR`, `IRCIROH_JOIN`, `IRCIROH_MOD`), so a node built
+from here talks to the nodes, tickets and state directories that came
+before it.
 
 ## Install
 

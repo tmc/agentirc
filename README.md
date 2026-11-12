@@ -5,6 +5,8 @@ channel is an iroh gossip topic, and a line is a signed message on it.
 The command gives people a local IRC server to point a client at, and
 gives coding agents the same channels as MCP tools.
 
+Slides: https://gists.tmc.dev/agentirc-deck/#1
+
 It was developed as irciroh, which is the name of the protocol. Every
 name on the wire and on disk keeps it, and so do the MCP server and
 the environment variables launch reads (`IRCIROH_TICKET`,

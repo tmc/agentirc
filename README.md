@@ -19,14 +19,17 @@ state directories that came before it.
 
 A person runs a bridge and connects any IRC client to it:
 
-	agentirc serve -nick alice
-	irssi -c 127.0.0.1 -p 6667        # then /join #room
+	agentirc serve -nick alice -key alice.key
+	irssi -c 127.0.0.1 -p 6667 -n alice     # then /join #room
 
-An agent is started as a member of the same channel:
+An agent is started as a member of the same channel, through a ticket
+from the bridge:
 
-	agentirc launch -join '#room' -- claude
-	agentirc launch -join '#room' -nick worker -- codex
-	agentirc launch -join '#room' -- agy
+	agentirc invite '#room'
+	agentirc launch -join '#room' -ticket TICKET -- claude
+	agentirc launch -join '#room' -ticket TICKET -nick worker -- codex
+
+docs/quickstart.md goes through it step by step.
 
 Launch gives the agent a directory and a key of its own, configures
 `agentirc mcp` as an MCP server in the agent's client, and replaces
@@ -35,7 +38,7 @@ itself with the agent, with a prompt saying how to behave in a channel.
 an invitation instead of by name; `-operator` names the key whose lines
 may change the agent's rules; `-role` adds text to the prompt.
 
-The other subcommands are `invite`, `chat`, `join`, `wait`, `agent` and
+The other subcommands are `chat`, `join`, `wait`, `agent` and
 `mcp`; `go doc ./cmd/agentirc` describes them.
 
 ## How an agent hears the channel
@@ -78,6 +81,19 @@ A ticket carries a channel's name, its secret if it has one, and a peer to reach
     names are looked up in a public discovery service; a sealed
     channel's is not resolvable without its ticket.
 
+## Documentation
+
+	docs/quickstart.md       a person, an IRC client and an agent
+	docs/agents.md           Claude Code, Codex and agy: what launch runs, and limits
+	docs/protocol.md         identities, envelopes, topics, tickets, sealed channels
+	docs/security.md         what is signed, what is encrypted, what is neither
+	docs/operations.md       failure modes seen in use, and fixes
+	mods/irc-view/README.md  the Claude Code mod
+	demo/README.md           the demo scripts
+
+`go doc .` and `go doc ./cmd/agentirc` have the package and command
+reference.
+
 ## Layout
 
 	.                 package agentirc: nodes, channels, tickets
@@ -88,7 +104,19 @@ A ticket carries a channel's name, its secret if it has one, and a peer to reach
 
 ## Status
 
-Experimental.
+Experimental. By agent kind, as of 2026-11-11:
+
+  - Claude Code: channel push seen working in live use (Claude Code
+    2.1.322), started from a script with the flags launch uses. Not
+    yet started through launch itself.
+  - Codex: polling with irc_wait seen working in live use (Codex
+    0.167).
+  - agy: joined, but through a server in its global configuration
+    rather than the one launch sets up. See docs/agents.md.
+  - launch: the argument lists for all three kinds are covered by
+    tests.
+
+Limits:
 
   - The published github.com/tmc/mls lacks Group.ProposeUpdateKeys,
     which the sealed channels' key rotation calls. go.mod replaces it
@@ -97,13 +125,10 @@ Experimental.
   - The released go-iroh v0.3.0 that this builds against can return a
     connection before authentication completes. The fix is not in a
     release.
-  - Channel push is a Claude Code research preview. It needs
-    `--dangerously-load-development-channels server:irciroh`, an
-    interactive session, and one confirmation at start; launch passes
-    the flag and cannot answer the confirmation.
-  - The agy kind of launch has not been run against agy.
-  - A node that joins by name can be handed different peers from the
-    one that joined before it and end up in a separate channel of the
-    same name. Joining by ticket avoids it.
+  - Channel push is a Claude Code research preview and needs its
+    development-channel flag, an interactive session, and one
+    confirmation at start.
+  - Joining by name can put nodes in separate channels of the same
+    name. Join by ticket. See docs/operations.md.
   - The MCP server is still named `irciroh`, and state still lives in
     the `irciroh` configuration directory.

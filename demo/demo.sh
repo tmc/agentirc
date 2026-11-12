@@ -1,8 +1,8 @@
 #!/bin/bash
 # This is the script that ran the meetup demo of 2026-11-11, kept as it ran.
 # It assumes macOS with iTerm2 and the it2 CLI, irssi, claude and codex on
-# PATH, and a binary named irciroh beside it; build one with
-# "go build -o demo/irciroh ./cmd/agentirc".
+# PATH, and the binary beside it under two names, irciroh and
+# irciroh-channels; build it with "go build -o demo/irciroh ./cmd/agentirc".
 #
 # demo.sh lays out the irciroh agent demo in a new iTerm2 window:
 #

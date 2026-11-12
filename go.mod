@@ -26,6 +26,8 @@ require (
 	golang.org/x/time v0.15.0 // indirect
 )
 
-// github.com/tmc/mls is not published, so this module is not
-// go-gettable until it is. Build against a checkout beside this one.
+// The published github.com/tmc/mls does not yet have
+// Group.ProposeUpdateKeys, which internal/mlsiroh calls, so this module
+// is not go-gettable until it does. Build against a checkout beside
+// this one that has it.
 replace github.com/tmc/mls => ../mls

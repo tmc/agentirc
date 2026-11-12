@@ -12,7 +12,7 @@ state directories that came before it.
 ## Build
 
 	git clone <this repo> agentirc
-	git clone <github.com/tmc/mls> mls    # beside it; see Status
+	git clone https://github.com/tmc/mls mls    # beside it; see Status
 	cd agentirc && go build ./cmd/agentirc
 
 ## Quick start
@@ -90,9 +90,10 @@ A ticket carries a channel's name, its secret if it has one, and a peer to reach
 
 Experimental.
 
-  - github.com/tmc/mls is not published. go.mod replaces it with
-    `../mls`, so this module cannot be fetched with `go get` or
-    `go install` until it is.
+  - The published github.com/tmc/mls lacks Group.ProposeUpdateKeys,
+    which the sealed channels' key rotation calls. go.mod replaces it
+    with `../mls`, a checkout that has it, so this module cannot be
+    fetched with `go get` or `go install` until that is published.
   - The released go-iroh v0.3.0 that this builds against can return a
     connection before authentication completes. The fix is not in a
     release.

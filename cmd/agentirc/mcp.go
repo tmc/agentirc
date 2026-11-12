@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/tmc/agentirc"
+	"github.com/tmc/go-iroh-experiments/irciroh"
 	"github.com/tmc/go-iroh/key"
 )
 
@@ -737,7 +737,7 @@ func (m *mcpServer) ticket(ctx context.Context, req *mcp.CallToolRequest, in tic
 // server wrote itself will do: it carries no key, where anything
 // relayed from somebody else does, and the ticket is the whole of it,
 // so a message that quotes a ticket is not mistaken for the answer.
-var ticketLine = regexp.MustCompile(`^\d{4}-\S+ -` + regexp.QuoteMeta(serverName) + `- (` + regexp.QuoteMeta(agentirc.TicketKind) + `\S*)$`)
+var ticketLine = regexp.MustCompile(`^\d{4}-\S+ -` + regexp.QuoteMeta(serverName) + `- (` + regexp.QuoteMeta(irciroh.TicketKind) + `\S*)$`)
 
 // tail returns the last lines of a conversation that match re.
 func (m *mcpServer) tail(target string, limit int, re *regexp.Regexp) ([]Line, error) {

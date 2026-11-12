@@ -11,7 +11,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/tmc/agentirc"
+	"github.com/tmc/go-iroh-experiments/irciroh"
 	"github.com/tmc/go-iroh/key"
 )
 
@@ -95,7 +95,7 @@ func (p *peers) load() error {
 			return fmt.Errorf("peers %s:%d: %w", p.path, n+1, err)
 		}
 		byKey[id] = pin
-		byName[agentirc.Fold(pin.Name)] = id
+		byName[irciroh.Fold(pin.Name)] = id
 	}
 	p.byKey, p.byName = byKey, byName
 	return nil
@@ -190,12 +190,12 @@ func (p *peers) verdict(id key.EndpointID, name string) (verdict, string) {
 	defer p.mu.Unlock()
 	pin, pinned := p.byKey[id]
 	switch {
-	case pinned && agentirc.Fold(pin.Name) == agentirc.Fold(name):
+	case pinned && irciroh.Fold(pin.Name) == irciroh.Fold(name):
 		return pinnedAs, pin.Name
 	case pinned:
 		return renamed, pin.Name
 	}
-	if _, taken := p.byName[agentirc.Fold(name)]; taken {
+	if _, taken := p.byName[irciroh.Fold(name)]; taken {
 		return claimed, ""
 	}
 	return unknown, ""
@@ -206,7 +206,7 @@ func (p *peers) verdict(id key.EndpointID, name string) (verdict, string) {
 // A pin is the one thing that lets a view print a bare name, so the
 // gate is not about what a nick may be - the network carries whatever
 // SetNick was handed - but about what a person can be asked to tell
-// apart. Two rules follow from that, and both are about [agentirc.Fold]
+// apart. Two rules follow from that, and both are about [irciroh.Fold]
 // rather than about taste.
 //
 // A name outside ASCII is refused. Fold maps ASCII and passes

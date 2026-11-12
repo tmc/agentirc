@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tmc/agentirc"
+	"github.com/tmc/go-iroh-experiments/irciroh"
 )
 
 // TestServeProcess runs the real command entry point in a child process.
@@ -207,12 +207,12 @@ func TestBridgeFounderProcessRestart(t *testing.T) {
 	alice.expect("bob!", "PRIVMSG #restart", "member can reply")
 }
 
-func processTicket(t *testing.T, client *ircClient, channel string) agentirc.Ticket {
+func processTicket(t *testing.T, client *ircClient, channel string) irciroh.Ticket {
 	t.Helper()
 	client.send("TICKET " + channel)
 	line := client.expect("NOTICE", "irciroh")
 	_, params := parseLine(line)
-	ticket, err := agentirc.ParseTicket(params[len(params)-1])
+	ticket, err := irciroh.ParseTicket(params[len(params)-1])
 	if err != nil {
 		t.Fatal(err)
 	}

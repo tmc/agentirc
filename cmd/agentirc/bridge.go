@@ -15,7 +15,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/tmc/agentirc"
+	"github.com/tmc/go-iroh-experiments/irciroh"
 	"github.com/tmc/go-iroh/key"
 	"github.com/tmc/go-iroh/netaddr"
 )
@@ -63,23 +63,23 @@ const capMessageTags = "message-tags"
 // A bridge is a local IRC server in front of one irciroh node. Every client
 // connected to it shares the node's identity, nick, and channels.
 type bridge struct {
-	node *agentirc.Node
+	node *irciroh.Node
 
 	once sync.Once     // starts private
 	ctcp chan struct{} // CTCP answers in flight
 
 	mu      sync.Mutex
 	clients map[*client]bool
-	pumps   map[*agentirc.Channel]bool
+	pumps   map[*irciroh.Channel]bool
 }
 
 // newBridge returns a bridge serving node.
-func newBridge(node *agentirc.Node) *bridge {
+func newBridge(node *irciroh.Node) *bridge {
 	return &bridge{
 		node:    node,
 		ctcp:    make(chan struct{}, ctcpReplies),
 		clients: make(map[*client]bool),
-		pumps:   make(map[*agentirc.Channel]bool),
+		pumps:   make(map[*irciroh.Channel]bool),
 	}
 }
 
@@ -207,7 +207,7 @@ func (b *bridge) say(from key.EndpointID, verb, who, target, text string) {
 // alias: a pump records itself and removes itself. Joining a channel
 // this node is already on returns the same channel, so this still
 // refuses the second pump, which is what the map was for.
-func (b *bridge) pump(ch *agentirc.Channel) {
+func (b *bridge) pump(ch *irciroh.Channel) {
 	b.mu.Lock()
 	if b.pumps[ch] {
 		b.mu.Unlock()
@@ -234,23 +234,23 @@ func (b *bridge) pump(ch *agentirc.Channel) {
 // arrived. Everything in ev is a peer's claim, and a peer need not run
 // this code: the nicks are mapped by [displayNick] and the lines
 // cleaned by [clean] whatever the core let through.
-func (b *bridge) relay(name string, members []agentirc.Member, ev agentirc.Event) {
+func (b *bridge) relay(name string, members []irciroh.Member, ev irciroh.Event) {
 	who := prefix(members, ev.From)
 	switch ev.Kind {
-	case agentirc.Joined:
+	case irciroh.Joined:
 		b.broadcast(nil, ":%s JOIN %s", who, name)
-	case agentirc.Parted:
+	case irciroh.Parted:
 		b.tagged(nil, ev.From.ID, ":%s PART %s :%s", who, name, ev.Text)
-	case agentirc.Message:
+	case irciroh.Message:
 		b.say(ev.From.ID, "PRIVMSG", who, name, ev.Text)
-	case agentirc.Notice:
+	case irciroh.Notice:
 		b.say(ev.From.ID, "NOTICE", who, name, ev.Text)
-	case agentirc.TopicChanged:
+	case irciroh.TopicChanged:
 		// Tagged, because a topic is somebody's words as much as a
 		// message is, and a reader that compares keys should be
 		// able to compare this one.
 		b.tagged(nil, ev.From.ID, ":%s TOPIC %s :%s", who, name, ev.Text)
-	case agentirc.NickChanged:
+	case irciroh.NickChanged:
 		// Both names are shown the way the roster shows them, which
 		// is before and after the change: the old one is what a
 		// client knows the member by, and the new one has to be a
@@ -258,16 +258,16 @@ func (b *bridge) relay(name string, members []agentirc.Member, ev agentirc.Event
 		before, after := withNick(members, ev.From.ID, ev.Old), withNick(members, ev.From.ID, ev.Text)
 		now, ok := displayNames(after)[ev.From.ID]
 		if !ok {
-			now = nickName(agentirc.Member{ID: ev.From.ID, Nick: ev.Text})
+			now = nickName(irciroh.Member{ID: ev.From.ID, Nick: ev.Text})
 		}
-		b.broadcast(nil, ":%s NICK :%s", prefix(before, agentirc.Member{ID: ev.From.ID, Nick: ev.Old}), now)
-	case agentirc.ModeChanged:
+		b.broadcast(nil, ":%s NICK :%s", prefix(before, irciroh.Member{ID: ev.From.ID, Nick: ev.Old}), now)
+	case irciroh.ModeChanged:
 		flag := "-m"
 		if ev.Text == "moderated" {
 			flag = "+m"
 		}
 		b.broadcast(nil, ":%s MODE %s %s", who, name, flag)
-	case agentirc.RankChanged:
+	case irciroh.RankChanged:
 		// IRC has no word for a rank, only for the flags one
 		// implies, so a change is sent as the flags it turns on
 		// and off. The ladder makes that at most two.
@@ -278,7 +278,7 @@ func (b *bridge) relay(name string, members []agentirc.Member, ev agentirc.Event
 		for _, flag := range rankFlags(ev.Old, ev.Text) {
 			b.broadcast(nil, ":%s MODE %s %s %s", by, name, flag, about)
 		}
-	case agentirc.Replayed:
+	case irciroh.Replayed:
 		// A replayed line is hearsay. This node did not hear it
 		// said; a peer handed over the envelope and this node
 		// checked the signature, which proves who wrote the
@@ -295,7 +295,7 @@ func (b *bridge) relay(name string, members []agentirc.Member, ev agentirc.Event
 		// speech marks of what it was said as, so that a
 		// notice replayed does not come back a message.
 		marks := "<%s> %s"
-		if ev.Was == agentirc.Notice {
+		if ev.Was == irciroh.Notice {
 			marks = "-%s- %s"
 		}
 		//
@@ -305,14 +305,14 @@ func (b *bridge) relay(name string, members []agentirc.Member, ev agentirc.Event
 		// claimed to be called.
 		said := fmt.Sprintf(marks, nickName(ev.From), ev.Text)
 		b.tagged(nil, ev.From.ID, ":%s NOTICE %s :[replay %s via %s] %s", serverName, name, ev.Time.UTC().Format("15:04:05Z"), short(ev.Via.ID), said)
-	case agentirc.Lagged:
+	case irciroh.Lagged:
 		b.broadcast(nil, ":%s NOTICE %s :messages were dropped", serverName, name)
-	case agentirc.Split:
+	case irciroh.Split:
 		// From the server, not from a member, because the PARTs
 		// that came with it already named the members and this is
 		// the line that says not to read them that way.
 		b.broadcast(nil, ":%s NOTICE %s :%s", serverName, name, ev.Text)
-	case agentirc.Refused:
+	case irciroh.Refused:
 		// One of these is a netsplit healing; a stream of them
 		// is somebody working at it.
 		if ev.From.ID.IsZero() {
@@ -383,13 +383,13 @@ func (b *bridge) answer(ctx context.Context, to key.EndpointID, text string) {
 // suffixed with the key whenever somebody else could be filed under it
 // too: another member of a channel this node is on, this node itself,
 // or the server.
-func (b *bridge) dmPrefix(m agentirc.Member) string {
+func (b *bridge) dmPrefix(m irciroh.Member) string {
 	name := nickName(m)
-	folded := agentirc.Fold(name)
-	taken := folded == agentirc.Fold(b.node.Nick()) || folded == agentirc.Fold(serverName)
+	folded := irciroh.Fold(name)
+	taken := folded == irciroh.Fold(b.node.Nick()) || folded == irciroh.Fold(serverName)
 	for _, ch := range b.node.Channels() {
 		for _, o := range ch.Members() {
-			if o.ID != m.ID && agentirc.Fold(nickName(o)) == folded {
+			if o.ID != m.ID && irciroh.Fold(nickName(o)) == folded {
 				taken = true
 			}
 		}
@@ -417,9 +417,9 @@ var (
 // Resolving that to whichever channel enumerated first would send a
 // private message to somebody the sender did not mean and tell neither
 // of them, so it resolves to nobody and says who the candidates were.
-func (b *bridge) resolve(nick string) (agentirc.Member, error) {
+func (b *bridge) resolve(nick string) (irciroh.Member, error) {
 	channels := b.node.Channels()
-	rosters := make([][]agentirc.Member, 0, len(channels))
+	rosters := make([][]irciroh.Member, 0, len(channels))
 	for _, ch := range channels {
 		rosters = append(rosters, ch.Members())
 	}
@@ -429,14 +429,14 @@ func (b *bridge) resolve(nick string) (agentirc.Member, error) {
 // resolveIn is resolve's decision, over the rosters rather than the node,
 // because what it has to get right is which of several claimants a name
 // names and that is worth testing without a network under it.
-func resolveIn(rosters [][]agentirc.Member, nick string) (agentirc.Member, error) {
-	want := agentirc.Fold(nick)
-	var found []agentirc.Member
+func resolveIn(rosters [][]irciroh.Member, nick string) (irciroh.Member, error) {
+	want := irciroh.Fold(nick)
+	var found []irciroh.Member
 	seen := make(map[key.EndpointID]bool)
 	for _, members := range rosters {
 		names := displayNames(members)
 		for _, m := range members {
-			if agentirc.Fold(names[m.ID]) != want && agentirc.Fold(nickName(m)) != want {
+			if irciroh.Fold(names[m.ID]) != want && irciroh.Fold(nickName(m)) != want {
 				continue
 			}
 			// The same member is on more than one channel, and that is
@@ -448,14 +448,14 @@ func resolveIn(rosters [][]agentirc.Member, nick string) (agentirc.Member, error
 		}
 	}
 	if len(found) == 0 {
-		return agentirc.Member{}, fmt.Errorf("%s: %w", nick, errNoSuchNick)
+		return irciroh.Member{}, fmt.Errorf("%s: %w", nick, errNoSuchNick)
 	}
 	if len(found) > 1 {
 		who := make([]string, len(found))
 		for i, m := range found {
 			who[i] = nickName(m) + "[" + short(m.ID) + "]"
 		}
-		return agentirc.Member{}, fmt.Errorf("%s: %w: %s", nick, errAmbiguousNick, strings.Join(who, " "))
+		return irciroh.Member{}, fmt.Errorf("%s: %w: %s", nick, errAmbiguousNick, strings.Join(who, " "))
 	}
 	return found[0], nil
 }
@@ -480,12 +480,12 @@ func short(id key.EndpointID) string { return id.String()[:6] }
 // already claimed is shown with its endpoint prefix appended. The server's
 // own name is claimed before anybody, so that no member is shown as the
 // server.
-func displayNames(members []agentirc.Member) map[key.EndpointID]string {
-	claimed := map[string]bool{agentirc.Fold(serverName): true}
+func displayNames(members []irciroh.Member) map[key.EndpointID]string {
+	claimed := map[string]bool{irciroh.Fold(serverName): true}
 	out := make(map[key.EndpointID]string, len(members))
 	for _, m := range members {
 		nick := nickName(m)
-		folded := agentirc.Fold(nick)
+		folded := irciroh.Fold(nick)
 		if claimed[folded] {
 			out[m.ID] = suffixed(nick, m.ID)
 		} else {
@@ -502,7 +502,7 @@ func displayNames(members []agentirc.Member) map[key.EndpointID]string {
 // the founder's commit, which carries an endpoint and no nick, and the
 // nick follows in band. IRC has no syntax for a name that is not there,
 // so an empty one would not be a nameless member but a broken line.
-func nickName(m agentirc.Member) string {
+func nickName(m irciroh.Member) string {
 	if m.Nick == "" {
 		return "~" + short(m.ID)
 	}
@@ -555,7 +555,7 @@ func suffixed(name string, id key.EndpointID) string {
 }
 
 // withNick returns a copy of members with id's nick replaced.
-func withNick(members []agentirc.Member, id key.EndpointID, nick string) []agentirc.Member {
+func withNick(members []irciroh.Member, id key.EndpointID, nick string) []irciroh.Member {
 	out := slices.Clone(members)
 	for i := range out {
 		if out[i].ID == id {
@@ -566,15 +566,15 @@ func withNick(members []agentirc.Member, id key.EndpointID, nick string) []agent
 }
 
 // prefix returns the IRC prefix nick!id@irciroh for a member.
-func prefix(members []agentirc.Member, m agentirc.Member) string {
+func prefix(members []irciroh.Member, m irciroh.Member) string {
 	name := nickName(m)
 	if got, ok := displayNames(members)[m.ID]; ok {
 		name = got
 	} else {
-		folded := agentirc.Fold(name)
-		taken := folded == agentirc.Fold(serverName)
+		folded := irciroh.Fold(name)
+		taken := folded == irciroh.Fold(serverName)
 		for _, o := range members {
-			if o.ID != m.ID && agentirc.Fold(nickName(o)) == folded {
+			if o.ID != m.ID && irciroh.Fold(nickName(o)) == folded {
 				taken = true
 			}
 		}
@@ -1129,13 +1129,13 @@ func (c *client) join(ctx context.Context, params []string) {
 		keys = strings.Split(params[1], ",")
 	}
 	for i, name := range names {
-		var ticket agentirc.Ticket
+		var ticket irciroh.Ticket
 		if i < len(keys) && keys[i] == sealKey {
 			c.found(ctx, name, true)
 			continue
 		}
 		if i < len(keys) && keys[i] != "" && keys[i] != "x" {
-			t, err := agentirc.ParseTicket(keys[i])
+			t, err := irciroh.ParseTicket(keys[i])
 			if err != nil {
 				c.numeric(475, "%s :cannot join channel: %s", name, err)
 				continue
@@ -1149,7 +1149,7 @@ func (c *client) join(ctx context.Context, params []string) {
 			ticket.Channel = name
 		}
 		ch, err := c.bridge.node.JoinTicket(ctx, ticket)
-		if errors.Is(err, agentirc.ErrFounded) {
+		if errors.Is(err, irciroh.ErrFounded) {
 			// A client that reconnects sends a bare JOIN for every
 			// channel it had, with no key, because IRC has nowhere
 			// to keep one. Founding again is what the user meant
@@ -1160,7 +1160,7 @@ func (c *client) join(ctx context.Context, params []string) {
 			c.found(ctx, name, false)
 			continue
 		}
-		if errors.Is(err, agentirc.ErrOtherChannel) {
+		if errors.Is(err, irciroh.ErrOtherChannel) {
 			// The name is taken by a different channel, and IRC
 			// gives a client no way to hold two of one name. Say
 			// which way out there is, because the client cannot
@@ -1197,7 +1197,7 @@ func (c *client) found(ctx context.Context, name string, asked bool) {
 }
 
 // sendJoin tells this client it is on a channel, with its topic and names.
-func (c *client) sendJoin(ch *agentirc.Channel) {
+func (c *client) sendJoin(ch *irciroh.Channel) {
 	c.send(":%s JOIN %s", c.self(), ch.Name())
 	c.sendTopic(ch)
 	c.sendNames(ch)
@@ -1210,7 +1210,7 @@ func (c *client) self() string {
 }
 
 // sendTopic reports a channel's topic.
-func (c *client) sendTopic(ch *agentirc.Channel) {
+func (c *client) sendTopic(ch *irciroh.Channel) {
 	text, by, at, ok := ch.Topic()
 	if !ok {
 		c.numeric(331, "%s :no topic is set", ch.Name())
@@ -1222,7 +1222,7 @@ func (c *client) sendTopic(ch *agentirc.Channel) {
 
 // sendNames lists a channel's members, in as many 353 lines as it
 // takes.
-func (c *client) sendNames(ch *agentirc.Channel) {
+func (c *client) sendNames(ch *irciroh.Channel) {
 	members := ch.Members()
 	names := displayNames(members)
 	shown := make([]string, 0, len(members))
@@ -1489,11 +1489,11 @@ func (c *client) list() {
 
 // rankPrefix returns the IRC nick prefix for a rank: the "@" and "+" that
 // ISUPPORT's PREFIX=(ov) names.
-func rankPrefix(r agentirc.Rank) string {
+func rankPrefix(r irciroh.Rank) string {
 	switch r {
-	case agentirc.Operator:
+	case irciroh.Operator:
 		return "@"
-	case agentirc.Voiced:
+	case irciroh.Voiced:
 		return "+"
 	}
 	return ""
@@ -1521,14 +1521,14 @@ func rankFlags(old, now string) []string {
 }
 
 // parseRankName maps a rank's name back to the rank.
-func parseRankName(s string) agentirc.Rank {
+func parseRankName(s string) irciroh.Rank {
 	switch s {
-	case agentirc.Voiced.String():
-		return agentirc.Voiced
-	case agentirc.Operator.String():
-		return agentirc.Operator
+	case irciroh.Voiced.String():
+		return irciroh.Voiced
+	case irciroh.Operator.String():
+		return irciroh.Operator
 	}
-	return agentirc.Ordinary
+	return irciroh.Ordinary
 }
 
 // mode reports and sets channel modes. The channel modes that mean
@@ -1587,14 +1587,14 @@ func (c *client) mode(ctx context.Context, params []string) {
 	// The ranks are a ladder, so a mode letter names the rung it moves
 	// the member to rather than a flag to toggle: -o leaves the voice a
 	// deposed operator would keep on IRC.
-	want := agentirc.Ordinary
+	want := irciroh.Ordinary
 	switch {
 	case set && letter == 'o':
-		want = agentirc.Operator
+		want = irciroh.Operator
 	case set && letter == 'v':
-		want = agentirc.Voiced
+		want = irciroh.Voiced
 	case !set && letter == 'o':
-		want = agentirc.Voiced
+		want = irciroh.Voiced
 	}
 	if err := ch.Grant(ctx, m.ID, want); err != nil {
 		c.modeError(ch, err)
@@ -1608,26 +1608,26 @@ func (c *client) mode(ctx context.Context, params []string) {
 }
 
 // me returns the local node's IRC prefix as the channel's members see it.
-func (c *client) me(ch *agentirc.Channel) string {
+func (c *client) me(ch *irciroh.Channel) string {
 	node := c.bridge.node
-	return prefix(ch.Members(), agentirc.Member{ID: node.ID(), Nick: node.Nick()})
+	return prefix(ch.Members(), irciroh.Member{ID: node.ID(), Nick: node.Nick()})
 }
 
 // modeError reports a refused mode change in the numeric a client expects.
-func (c *client) modeError(ch *agentirc.Channel, err error) {
+func (c *client) modeError(ch *irciroh.Channel, err error) {
 	switch {
-	case errors.Is(err, agentirc.ErrNotSealed):
+	case errors.Is(err, irciroh.ErrNotSealed):
 		c.numeric(477, "%s :channel has no operators; it is public", ch.Name())
-	case errors.Is(err, agentirc.ErrFounderRank):
+	case errors.Is(err, irciroh.ErrFounderRank):
 		c.numeric(482, "%s :the founder's standing is not yours or anyone's to grant", ch.Name())
-	case errors.Is(err, agentirc.ErrNotFounder):
+	case errors.Is(err, irciroh.ErrNotFounder):
 		// An operator is refused this too, so saying it needs an
 		// operator would be telling it what it already is. Only the
 		// founder commits, and Operator is the rank a commit backs.
 		c.numeric(482, "%s :only the founder of this channel can do that", ch.Name())
-	case errors.Is(err, agentirc.ErrNotOperator):
+	case errors.Is(err, irciroh.ErrNotOperator):
 		c.numeric(482, "%s :you are not a channel operator", ch.Name())
-	case errors.Is(err, agentirc.ErrNotMember):
+	case errors.Is(err, irciroh.ErrNotMember):
 		c.numeric(441, "%s :they are not on that channel", ch.Name())
 	default:
 		c.numeric(400, "MODE :%s", err)
@@ -1657,7 +1657,7 @@ func (c *client) kick(ctx context.Context, params []string) {
 	// the names the channel is shown: a kick is a ban, and one that
 	// took whichever bob came first would ban somebody nobody named.
 	members := ch.Members()
-	m, err := resolveIn([][]agentirc.Member{members}, params[1])
+	m, err := resolveIn([][]irciroh.Member{members}, params[1])
 	if errors.Is(err, errNoSuchNick) {
 		c.numeric(441, "%s %s :they are not on that channel", params[1], ch.Name())
 		return

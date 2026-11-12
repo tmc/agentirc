@@ -5,8 +5,7 @@ go 1.27
 require (
 	github.com/modelcontextprotocol/go-sdk v1.8.0
 	github.com/tmc/go-iroh v0.3.0
-	github.com/tmc/mls v0.0.0-00010101000000-000000000000
-	lukechampine.com/blake3 v1.4.1
+	github.com/tmc/go-iroh-experiments/irciroh v0.0.0-20261112011526-fdc20ff908d8
 )
 
 require (
@@ -17,6 +16,8 @@ require (
 	github.com/quic-go/quic-go v0.62.0 // indirect
 	github.com/segmentio/asm v1.1.3 // indirect
 	github.com/segmentio/encoding v0.5.4 // indirect
+	github.com/tmc/go-iroh-experiments/mlsiroh v0.0.0-20261112011256-ccc42e00d8a4 // indirect
+	github.com/tmc/mls v0.0.0-20261001024236-83dcd7f92a23 // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	golang.org/x/crypto v0.57.0 // indirect
 	golang.org/x/net v0.58.0 // indirect
@@ -24,10 +25,5 @@ require (
 	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
+	lukechampine.com/blake3 v1.4.1 // indirect
 )
-
-// The published github.com/tmc/mls does not yet have
-// Group.ProposeUpdateKeys, which internal/mlsiroh calls, so this module
-// is not go-gettable until it does. Build against a checkout beside
-// this one that has it.
-replace github.com/tmc/mls => ../mls

@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tmc/agentirc"
+	"github.com/tmc/go-iroh-experiments/irciroh"
 )
 
 // hexKey matches a whole endpoint key, which is what a logged line
@@ -117,9 +117,9 @@ func TestChatKeepsTheConversationInFiles(t *testing.T) {
 	// bridge's TICKET extension, whose answer arrives in the log the
 	// same way everything else does.
 	appendLine(t, filepath.Join(dir, "#go", "in"), "/TICKET #go")
-	fields := strings.Fields(waitFor(t, filepath.Join(dir, "out"), "-"+serverName+"- "+agentirc.TicketKind))
+	fields := strings.Fields(waitFor(t, filepath.Join(dir, "out"), "-"+serverName+"- "+irciroh.TicketKind))
 	ticket := fields[len(fields)-1]
-	if _, err := agentirc.ParseTicket(ticket); err != nil {
+	if _, err := irciroh.ParseTicket(ticket); err != nil {
 		t.Fatalf("logged ticket %q does not parse: %v", ticket, err)
 	}
 

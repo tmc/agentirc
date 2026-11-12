@@ -16,7 +16,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/tmc/agentirc"
+	"github.com/tmc/go-iroh-experiments/irciroh"
 )
 
 // A chat attaches to a running bridge and keeps what it hears in plain
@@ -473,7 +473,7 @@ func cutTags(line string) (tags, rest string, ok bool) {
 // neither goes to the directory's own log.
 func dmTarget(nick, key string) string {
 	switch {
-	case okFileName(nick) && !strings.ContainsAny(nick[:1], "#&") && agentirc.Fold(nick) != agentirc.Fold(serverName):
+	case okFileName(nick) && !strings.ContainsAny(nick[:1], "#&") && irciroh.Fold(nick) != irciroh.Fold(serverName):
 		return nick
 	case key != "":
 		return "~" + shortKey(key)

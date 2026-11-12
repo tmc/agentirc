@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tmc/agentirc"
+	"github.com/tmc/go-iroh-experiments/irciroh"
 )
 
 // TestBridgeLeavesNothingRunning drives two bridges through a public
@@ -28,10 +28,10 @@ func TestBridgeLeavesNothingRunning(t *testing.T) {
 		alice.send("JOIN #leak")
 		alice.expect(" 366 ", "#leak")
 		alice.send("TICKET #leak")
-		_, params := parseLine(alice.expect("NOTICE", agentirc.TicketKind))
+		_, params := parseLine(alice.expect("NOTICE", irciroh.TicketKind))
 		pub := params[len(params)-1]
 		alice.send("JOIN #vault " + sealKey)
-		_, params = parseLine(alice.expect("NOTICE", agentirc.TicketKind))
+		_, params = parseLine(alice.expect("NOTICE", irciroh.TicketKind))
 		sealed := params[len(params)-1]
 
 		bob := dialIRC(t, bobAddr)

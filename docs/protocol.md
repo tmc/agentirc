@@ -89,7 +89,7 @@ where founder is the founding endpoint's key and secret is an invite
 secret the founder mints.
 
   - Each member's MLS leaf carries a credential naming its endpoint
-    key and signed by it (internal/mlsiroh), so the roster is a list of
+    key and signed by it (github.com/tmc/go-iroh-experiments/mlsiroh), so the roster is a list of
     endpoints.
   - Only the founder commits. Joins and removals go to the founder
     over ALPN `irciroh/invite/1` (invite.go). While the founder is

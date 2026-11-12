@@ -188,7 +188,7 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/tmc/agentirc"
+	"github.com/tmc/go-iroh-experiments/irciroh"
 	"github.com/tmc/go-iroh/dns"
 	"github.com/tmc/go-iroh/gossip"
 	"github.com/tmc/go-iroh/iroh"
@@ -412,7 +412,7 @@ func (n *nodeFlags) register(fs *flag.FlagSet) {
 // open binds an endpoint and starts a node on it. The returned function
 // shuts down what open started, in the reverse order, and is what the
 // caller defers.
-func (n *nodeFlags) open(ctx context.Context) (*agentirc.Node, func(), error) {
+func (n *nodeFlags) open(ctx context.Context) (*irciroh.Node, func(), error) {
 	// A test that leaves -state alone gets the default, which is the
 	// person's own directory: their endpoint key and the channel
 	// secrets beside it. Binding on that is not a test node, it is
@@ -481,7 +481,7 @@ func (n *nodeFlags) open(ctx context.Context) (*agentirc.Node, func(), error) {
 	}
 	// A failure after the endpoint is up has to take down what is
 	// already up, since the caller is given nothing to defer.
-	fail := func(err error) (*agentirc.Node, func(), error) {
+	fail := func(err error) (*irciroh.Node, func(), error) {
 		stop()
 		return nil, nil, err
 	}
@@ -501,26 +501,26 @@ func (n *nodeFlags) open(ctx context.Context) (*agentirc.Node, func(), error) {
 	}
 
 	g := gossip.NewGossip(ep)
-	var nodeOpts []agentirc.Option
+	var nodeOpts []irciroh.Option
 	if n.rendezvous {
-		nodeOpts = append(nodeOpts, agentirc.WithRendezvous())
+		nodeOpts = append(nodeOpts, irciroh.WithRendezvous())
 	}
 	if n.state != "" {
-		nodeOpts = append(nodeOpts, agentirc.WithStateDir(n.state))
+		nodeOpts = append(nodeOpts, irciroh.WithStateDir(n.state))
 	}
 	if n.recall {
-		nodeOpts = append(nodeOpts, agentirc.WithHistory())
+		nodeOpts = append(nodeOpts, irciroh.WithHistory())
 	}
-	node, err := agentirc.NewNode(ep, g, n.nick, nodeOpts...)
+	node, err := irciroh.NewNode(ep, g, n.nick, nodeOpts...)
 	if err != nil {
 		return fail(err)
 	}
 	undo = append(undo, func() { node.Close() })
 	n.announce(os.Stderr, node.ID())
 	handlers := map[string]iroh.ProtocolHandler{
-		gossip.ALPN:         g.Handler(),
-		agentirc.ALPN:       node.Handler(),
-		agentirc.InviteALPN: node.InviteHandler(),
+		gossip.ALPN:        g.Handler(),
+		irciroh.ALPN:       node.Handler(),
+		irciroh.InviteALPN: node.InviteHandler(),
 	}
 	if n.recall {
 		// Answering is registered with asking rather than always. A
@@ -528,7 +528,7 @@ func (n *nodeFlags) open(ctx context.Context) (*agentirc.Node, func(), error) {
 		// serve nothing, which costs a dial to learn and reads from
 		// outside as a peer that has forgotten rather than one that
 		// never kept anything.
-		handlers[agentirc.HistoryALPN] = node.HistoryHandler()
+		handlers[irciroh.HistoryALPN] = node.HistoryHandler()
 	}
 	router, err := iroh.NewRouter(ep, handlers, nil)
 	if err != nil {
@@ -594,7 +594,7 @@ func ticketNotice(line string) (string, bool) {
 	if !ok || target == "" || strings.ContainsAny(target, " #&") {
 		return "", false
 	}
-	if !strings.HasPrefix(text, agentirc.TicketKind) || strings.Contains(text, " ") {
+	if !strings.HasPrefix(text, irciroh.TicketKind) || strings.Contains(text, " ") {
 		return "", false
 	}
 	return text, true

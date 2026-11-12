@@ -12,7 +12,6 @@ state directories that came before it.
 ## Build
 
 	git clone <this repo> agentirc
-	git clone https://github.com/tmc/mls mls    # beside it; see Status
 	cd agentirc && go build ./cmd/agentirc
 
 ## Quick start
@@ -91,14 +90,12 @@ A ticket carries a channel's name, its secret if it has one, and a peer to reach
 	mods/irc-view/README.md  the Claude Code mod
 	demo/README.md           the demo scripts
 
-`go doc .` and `go doc ./cmd/agentirc` have the package and command
-reference.
+`go doc ./cmd/agentirc` has the command reference. The library is
+github.com/tmc/go-iroh-experiments/irciroh.
 
 ## Layout
 
-	.                 package agentirc: nodes, channels, tickets
 	cmd/agentirc      the command
-	internal/mlsiroh  MLS credentials bound to iroh endpoint keys
 	mods/irc-view     a Claude Code mod that draws the tool calls as IRC lines
 	demo              the scripts from the first public demo, as they ran
 
@@ -118,10 +115,9 @@ Experimental. By agent kind, as of 2026-11-11:
 
 Limits:
 
-  - The published github.com/tmc/mls lacks Group.ProposeUpdateKeys,
-    which the sealed channels' key rotation calls. go.mod replaces it
-    with `../mls`, a checkout that has it, so this module cannot be
-    fetched with `go get` or `go install` until that is published.
+  - Nodes, channels and tickets come from
+    github.com/tmc/go-iroh-experiments/irciroh, required at a commit
+    on that repository's next branch, not at a release.
   - The released go-iroh v0.3.0 that this builds against can return a
     connection before authentication completes. The fix is not in a
     release.

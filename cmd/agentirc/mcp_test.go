@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/tmc/agentirc"
+	"github.com/tmc/go-iroh-experiments/irciroh"
 	"github.com/tmc/go-iroh/key"
 )
 
@@ -681,7 +681,7 @@ func TestMCPParseLogWrap(t *testing.T) {
 // TestTicketLine holds which logged line answers irc_ticket: one the
 // server wrote, holding a ticket and nothing else.
 func TestTicketLine(t *testing.T) {
-	tk := agentirc.TicketKind + "abc"
+	tk := irciroh.TicketKind + "abc"
 	for _, tt := range []struct {
 		line string
 		ok   bool

@@ -9,7 +9,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/tmc/agentirc"
+	"github.com/tmc/go-iroh-experiments/irciroh"
 	"github.com/tmc/go-iroh/key"
 )
 
@@ -253,6 +253,6 @@ func (p *peers) name(id key.EndpointID) (string, bool) {
 func (p *peers) holder(name string) (key.EndpointID, bool) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	id, ok := p.byName[agentirc.Fold(name)]
+	id, ok := p.byName[irciroh.Fold(name)]
 	return id, ok
 }

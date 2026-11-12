@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tmc/agentirc"
+	"github.com/tmc/go-iroh-experiments/irciroh"
 	"github.com/tmc/go-iroh/gossip"
 	"github.com/tmc/go-iroh/iroh"
 	"github.com/tmc/go-iroh/key"
@@ -30,14 +30,14 @@ func startBridge(t *testing.T, ctx context.Context) string {
 		t.Fatal(err)
 	}
 	g := gossip.NewGossip(ep)
-	node, err := agentirc.NewNode(ep, g, "")
+	node, err := irciroh.NewNode(ep, g, "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	router, err := iroh.NewRouter(ep, map[string]iroh.ProtocolHandler{
-		gossip.ALPN:         g.Handler(),
-		agentirc.ALPN:       node.Handler(),
-		agentirc.InviteALPN: node.InviteHandler(),
+		gossip.ALPN:        g.Handler(),
+		irciroh.ALPN:       node.Handler(),
+		irciroh.InviteALPN: node.InviteHandler(),
 	}, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -150,10 +150,10 @@ func TestBridge(t *testing.T) {
 
 	// The TICKET extension yields an invitation bob can join with.
 	alice.send("TICKET #test")
-	line := alice.expect("NOTICE", agentirc.TicketKind)
+	line := alice.expect("NOTICE", irciroh.TicketKind)
 	_, params := parseLine(line)
 	ticket := params[len(params)-1]
-	if _, err := agentirc.ParseTicket(ticket); err != nil {
+	if _, err := irciroh.ParseTicket(ticket); err != nil {
 		t.Fatalf("bridge produced an unparseable ticket %q: %v", ticket, err)
 	}
 
@@ -364,9 +364,9 @@ func TestBridgeSealed(t *testing.T) {
 	alice.register("alice")
 	alice.send("JOIN #vault " + sealKey)
 	alice.expect("alice!", "JOIN #vault")
-	line := alice.expect("NOTICE", agentirc.TicketKind)
+	line := alice.expect("NOTICE", irciroh.TicketKind)
 	_, params := parseLine(line)
-	ticket, err := agentirc.ParseTicket(params[len(params)-1])
+	ticket, err := irciroh.ParseTicket(params[len(params)-1])
 	if err != nil {
 		t.Fatalf("founding produced an unparseable ticket: %v", err)
 	}
@@ -486,7 +486,7 @@ func TestBridgeRejoinKeepsTheSeal(t *testing.T) {
 	alice.register("alice")
 	alice.send("JOIN #vault " + sealKey)
 	alice.expect("alice!", "JOIN #vault")
-	alice.expect("NOTICE", agentirc.TicketKind)
+	alice.expect("NOTICE", irciroh.TicketKind)
 
 	alice.send("JOIN #vault")
 	alice.expect(" 353 ", "#vault", "@alice")
@@ -512,7 +512,7 @@ func TestDisplayNamesWithoutANick(t *testing.T) {
 		t.Fatal(err)
 	}
 	a, b := key.EndpointID(ka.Public()), key.EndpointID(kb.Public())
-	members := []agentirc.Member{{ID: a}, {ID: b, Nick: "bob"}}
+	members := []irciroh.Member{{ID: a}, {ID: b, Nick: "bob"}}
 	names := displayNames(members)
 	if got, want := names[a], "~"+short(a); got != want {
 		t.Errorf("displayNames[a] = %q, want %q", got, want)
@@ -581,10 +581,10 @@ func TestResolveRefusesAnAmbiguousNick(t *testing.T) {
 		return key.EndpointID(k.Public())
 	}
 	a, b, c := id(t), id(t), id(t)
-	go1 := []agentirc.Member{{ID: a, Nick: "tmc"}, {ID: c, Nick: "carol"}}
-	go2 := []agentirc.Member{{ID: b, Nick: "tmc"}}
+	go1 := []irciroh.Member{{ID: a, Nick: "tmc"}, {ID: c, Nick: "carol"}}
+	go2 := []irciroh.Member{{ID: b, Nick: "tmc"}}
 
-	if _, err := resolveIn([][]agentirc.Member{go1, go2}, "tmc"); !errors.Is(err, errAmbiguousNick) {
+	if _, err := resolveIn([][]irciroh.Member{go1, go2}, "tmc"); !errors.Is(err, errAmbiguousNick) {
 		t.Errorf("two claimants resolved with err = %v, want %v", err, errAmbiguousNick)
 	} else {
 		// The refusal is only useful if it says what to send instead.
@@ -594,25 +594,25 @@ func TestResolveRefusesAnAmbiguousNick(t *testing.T) {
 			}
 		}
 	}
-	if m, err := resolveIn([][]agentirc.Member{go1, go2}, "carol"); err != nil || m.ID != c {
+	if m, err := resolveIn([][]irciroh.Member{go1, go2}, "carol"); err != nil || m.ID != c {
 		t.Errorf("resolveIn(carol) = %s, %v; want %s", short(m.ID), err, short(c))
 	}
-	if _, err := resolveIn([][]agentirc.Member{go1, go2}, "nobody"); !errors.Is(err, errNoSuchNick) {
+	if _, err := resolveIn([][]irciroh.Member{go1, go2}, "nobody"); !errors.Is(err, errNoSuchNick) {
 		t.Errorf("resolveIn(nobody) err = %v, want %v", err, errNoSuchNick)
 	}
 	// One member on two channels is one claimant.
-	if m, err := resolveIn([][]agentirc.Member{go1, {{ID: c, Nick: "carol"}}}, "carol"); err != nil || m.ID != c {
+	if m, err := resolveIn([][]irciroh.Member{go1, {{ID: c, Nick: "carol"}}}, "carol"); err != nil || m.ID != c {
 		t.Errorf("a member on two channels resolved to %s, %v", short(m.ID), err)
 	}
 	// rfc1459 folds [] onto {}, so these are one nick to every client
 	// and have to be one nick here. Told apart, the bare form would
 	// resolve to whichever was written first and the other member
 	// would never be reachable at all.
-	sq := []agentirc.Member{{ID: a, Nick: "tmc[1]"}, {ID: b, Nick: "tmc{1}"}}
-	if _, err := resolveIn([][]agentirc.Member{sq}, "tmc{1}"); !errors.Is(err, errAmbiguousNick) {
+	sq := []irciroh.Member{{ID: a, Nick: "tmc[1]"}, {ID: b, Nick: "tmc{1}"}}
+	if _, err := resolveIn([][]irciroh.Member{sq}, "tmc{1}"); !errors.Is(err, errAmbiguousNick) {
 		t.Errorf("a folded collision resolved bare: err = %v", err)
 	}
-	if m, err := resolveIn([][]agentirc.Member{sq}, "tmc{1}~"+short(b)); err != nil || m.ID != b {
+	if m, err := resolveIn([][]irciroh.Member{sq}, "tmc{1}~"+short(b)); err != nil || m.ID != b {
 		t.Errorf("the disambiguated form resolved to %s, %v; want %s", short(m.ID), err, short(b))
 	}
 }
@@ -825,7 +825,7 @@ func TestSayPassesACTCPWhole(t *testing.T) {
 // client is written.
 func sayTo(t *testing.T) (*bridge, *client, *strings.Builder) {
 	t.Helper()
-	b := &bridge{clients: make(map[*client]bool), pumps: make(map[*agentirc.Channel]bool)}
+	b := &bridge{clients: make(map[*client]bool), pumps: make(map[*irciroh.Channel]bool)}
 	var out strings.Builder
 	c := &client{bridge: b, w: bufio.NewWriter(&out), out: make(chan string, sendQueue)}
 	b.clients[c] = true
@@ -855,14 +855,14 @@ func TestPumpFollowsTheChannelNotTheName(t *testing.T) {
 		t.Fatal(err)
 	}
 	g := gossip.NewGossip(ep)
-	node, err := agentirc.NewNode(ep, g, "alice")
+	node, err := irciroh.NewNode(ep, g, "alice")
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { node.Close() })
 	b := newBridge(node)
 
-	first, err := node.JoinTicket(ctx, agentirc.Ticket{Channel: "#race"})
+	first, err := node.JoinTicket(ctx, irciroh.Ticket{Channel: "#race"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -872,7 +872,7 @@ func TestPumpFollowsTheChannelNotTheName(t *testing.T) {
 	if err := first.Part(ctx, ""); err != nil {
 		t.Fatal(err)
 	}
-	second, err := node.JoinTicket(ctx, agentirc.Ticket{Channel: "#race"})
+	second, err := node.JoinTicket(ctx, irciroh.Ticket{Channel: "#race"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -898,7 +898,7 @@ func TestPumpFollowsTheChannelNotTheName(t *testing.T) {
 
 	// Joining a channel this node is already on returns that same
 	// channel, which is the duplicate the map exists to refuse.
-	again, err := node.JoinTicket(ctx, agentirc.Ticket{Channel: "#race"})
+	again, err := node.JoinTicket(ctx, irciroh.Ticket{Channel: "#race"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -911,7 +911,7 @@ func TestPumpFollowsTheChannelNotTheName(t *testing.T) {
 
 // waitPump waits for ch's pump entry to be want, and says so if it
 // never is.
-func waitPump(t *testing.T, b *bridge, ch *agentirc.Channel, want bool, why string) {
+func waitPump(t *testing.T, b *bridge, ch *irciroh.Channel, want bool, why string) {
 	t.Helper()
 	for range 100 {
 		b.mu.Lock()
@@ -990,7 +990,7 @@ func TestBridgeReplaysWhatWasSaidBeforeTheJoin(t *testing.T) {
 	alice.send("PRIVMSG #recall :" + said)
 
 	alice.send("TICKET #recall")
-	_, params := parseLine(alice.expect("NOTICE", agentirc.TicketKind))
+	_, params := parseLine(alice.expect("NOTICE", irciroh.TicketKind))
 	ticket := params[len(params)-1]
 
 	bob := dialIRC(t, startNodeBridge(t, ctx, true))
@@ -1030,7 +1030,7 @@ func TestBridgeKeepsNoHistoryWithoutRecall(t *testing.T) {
 	alice.send("PRIVMSG #recall :" + said)
 
 	alice.send("TICKET #recall")
-	_, params := parseLine(alice.expect("NOTICE", agentirc.TicketKind))
+	_, params := parseLine(alice.expect("NOTICE", irciroh.TicketKind))
 	ticket := params[len(params)-1]
 
 	bob := dialIRC(t, startNodeBridge(t, ctx, false))
@@ -1042,21 +1042,21 @@ func TestBridgeKeepsNoHistoryWithoutRecall(t *testing.T) {
 
 // testNode binds a node on loopback under nick, for a test that plays
 // the other end of a conversation without an IRC client of its own.
-func testNode(t *testing.T, ctx context.Context, nick string) *agentirc.Node {
+func testNode(t *testing.T, ctx context.Context, nick string) *irciroh.Node {
 	t.Helper()
 	ep, err := iroh.Bind(ctx, iroh.WithBindAddr(netip.AddrPortFrom(netip.IPv6Loopback(), 0)))
 	if err != nil {
 		t.Fatal(err)
 	}
 	g := gossip.NewGossip(ep)
-	node, err := agentirc.NewNode(ep, g, nick)
+	node, err := irciroh.NewNode(ep, g, nick)
 	if err != nil {
 		t.Fatal(err)
 	}
 	router, err := iroh.NewRouter(ep, map[string]iroh.ProtocolHandler{
-		gossip.ALPN:         g.Handler(),
-		agentirc.ALPN:       node.Handler(),
-		agentirc.InviteALPN: node.InviteHandler(),
+		gossip.ALPN:        g.Handler(),
+		irciroh.ALPN:       node.Handler(),
+		irciroh.InviteALPN: node.InviteHandler(),
 	}, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -1073,7 +1073,7 @@ func testNode(t *testing.T, ctx context.Context, nick string) *agentirc.Node {
 }
 
 // serveNode serves IRC for node on an ephemeral port.
-func serveNode(t *testing.T, ctx context.Context, node *agentirc.Node) string {
+func serveNode(t *testing.T, ctx context.Context, node *irciroh.Node) string {
 	t.Helper()
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -1133,17 +1133,17 @@ func TestBridgeKeepsTheWireClean(t *testing.T) {
 		}
 	}()
 
-	evil := agentirc.Member{ID: testKey(t, 1), Nick: "tmc!a3f19c@irciroh\r\n:irciroh NOTICE alice :forged-by-nick"}
-	carol := agentirc.Member{ID: testKey(t, 2), Nick: "carol"}
-	members := []agentirc.Member{carol, evil}
+	evil := irciroh.Member{ID: testKey(t, 1), Nick: "tmc!a3f19c@irciroh\r\n:irciroh NOTICE alice :forged-by-nick"}
+	carol := irciroh.Member{ID: testKey(t, 2), Nick: "carol"}
+	members := []irciroh.Member{carol, evil}
 	now := time.Now()
-	for _, ev := range []agentirc.Event{
-		{Kind: agentirc.Joined, From: evil, Time: now},
-		{Kind: agentirc.Message, From: evil, Text: "hello\r:irciroh 001 alice :forged-by-cr", Time: now},
-		{Kind: agentirc.TopicChanged, From: evil, Text: "topic\r\n:root!a3f19c@irciroh PRIVMSG #probe :forged-by-topic\x00nul", Time: now},
-		{Kind: agentirc.NickChanged, From: evil, Old: evil.Nick, Text: "x!a3f19c@irciroh\r\n:irciroh NOTICE alice :forged-by-rename", Time: now},
-		{Kind: agentirc.Parted, From: evil, Text: "bye\r\n:irciroh NOTICE alice :forged-by-part", Time: now},
-		{Kind: agentirc.Message, From: carol, Text: "the end", Time: now},
+	for _, ev := range []irciroh.Event{
+		{Kind: irciroh.Joined, From: evil, Time: now},
+		{Kind: irciroh.Message, From: evil, Text: "hello\r:irciroh 001 alice :forged-by-cr", Time: now},
+		{Kind: irciroh.TopicChanged, From: evil, Text: "topic\r\n:root!a3f19c@irciroh PRIVMSG #probe :forged-by-topic\x00nul", Time: now},
+		{Kind: irciroh.NickChanged, From: evil, Old: evil.Nick, Text: "x!a3f19c@irciroh\r\n:irciroh NOTICE alice :forged-by-rename", Time: now},
+		{Kind: irciroh.Parted, From: evil, Text: "bye\r\n:irciroh NOTICE alice :forged-by-part", Time: now},
+		{Kind: irciroh.Message, From: carol, Text: "the end", Time: now},
 	} {
 		b.relay("#probe", members, ev)
 	}
@@ -1215,9 +1215,9 @@ func TestNobodyIsShownAsTheServer(t *testing.T) {
 		t.Fatal(err)
 	}
 	id := key.EndpointID(k.Public())
-	m := agentirc.Member{ID: id, Nick: "IRCIROH"}
+	m := irciroh.Member{ID: id, Nick: "IRCIROH"}
 	want := "IRCIROH~" + short(id)
-	if got := displayNames([]agentirc.Member{m})[id]; got != want {
+	if got := displayNames([]irciroh.Member{m})[id]; got != want {
 		t.Errorf("displayNames = %q, want %q", got, want)
 	}
 	if got := prefix(nil, m); !strings.HasPrefix(got, want+"!") {
@@ -1238,8 +1238,8 @@ func TestKickRefusesAnAmbiguousNick(t *testing.T) {
 	alice := dialIRC(t, startBridge(t, ctx))
 	alice.register("alice")
 	alice.send("JOIN #vault " + sealKey)
-	_, params := parseLine(alice.expect("NOTICE", agentirc.TicketKind))
-	tk, err := agentirc.ParseTicket(params[len(params)-1])
+	_, params := parseLine(alice.expect("NOTICE", irciroh.TicketKind))
+	tk, err := irciroh.ParseTicket(params[len(params)-1])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1270,7 +1270,7 @@ func TestKickRefusesAnAmbiguousNick(t *testing.T) {
 // TestSlowClientIsDropped holds that a client which stops reading
 // costs itself its connection and costs the others nothing.
 func TestSlowClientIsDropped(t *testing.T) {
-	b := &bridge{clients: make(map[*client]bool), pumps: make(map[*agentirc.Channel]bool)}
+	b := &bridge{clients: make(map[*client]bool), pumps: make(map[*irciroh.Channel]bool)}
 	stuckConn, stuckPeer := net.Pipe()
 	defer stuckPeer.Close()
 	stuck := newClient(b, stuckConn)
@@ -1345,13 +1345,13 @@ func TestPrivateMessagesOutlastAStalledCTCPReply(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	evil, err := agentirc.NewNode(ep, gossip.NewGossip(ep), "evil")
+	evil, err := irciroh.NewNode(ep, gossip.NewGossip(ep), "evil")
 	if err != nil {
 		t.Fatal(err)
 	}
 	stalled := make(chan struct{}, 1)
 	router, err := iroh.NewRouter(ep, map[string]iroh.ProtocolHandler{
-		agentirc.ALPN: iroh.ProtocolHandlerFunc(func(ctx context.Context, conn *iroh.Conn) error {
+		irciroh.ALPN: iroh.ProtocolHandlerFunc(func(ctx context.Context, conn *iroh.Conn) error {
 			s, err := conn.AcceptStream(ctx)
 			if err != nil {
 				return err
@@ -1413,7 +1413,7 @@ func TestInviteDoesNotNameTheNode(t *testing.T) {
 // TestTicketNotice holds which line answers TICKET: an untagged notice
 // from the server to a nick, holding a ticket and nothing else.
 func TestTicketNotice(t *testing.T) {
-	tk := agentirc.TicketKind + "abc"
+	tk := irciroh.TicketKind + "abc"
 	for _, tt := range []struct {
 		line string
 		ok   bool

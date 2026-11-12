@@ -43,7 +43,7 @@ func TestLaunchKindOf(t *testing.T) {
 }
 
 func TestLaunchArgv(t *testing.T) {
-	const mcpJSON = `["mcp","-dir","/a/worker","-state","/a/worker/state","-nick","worker","-public","-join","#agents,#ops","-relay=false"]`
+	const mcpJSON = `["mcp","-dir","/a/worker","-state","/a/worker/state","-nick","worker","-join","#agents,#ops","-relay=false"]`
 	tests := []struct {
 		name string
 		kind string

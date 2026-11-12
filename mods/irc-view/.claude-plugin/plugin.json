@@ -1,0 +1,6 @@
+{
+  "name": "irc-view",
+  "version": "0.1.0",
+  "description": "Draws irciroh MCP tool calls as IRC client lines, with a channel band above the prompt.",
+  "types": "./types/index.d.ts"
+}

@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+
+	"github.com/tmc/agentirc/mods"
 )
 
 // Launch starts an agent's own command line as a member of a channel:
@@ -35,6 +37,7 @@ type launch struct {
 	operator string   // the key whose lines may change the rules; empty for nobody
 	role     string   // free text appended to the prompt
 	mod      string   // a plugin directory, for a client that takes one
+	modFS    bool     // mod is to be written from the copy built in
 	node     []string // node flags to hand on to agentirc mcp
 	args     []string // the user's own arguments to the agent
 }
@@ -272,7 +275,7 @@ func runLaunch(args []string) error {
 	fs.StringVar(&l.dir, "dir", "", "directory to keep the agent's conversation in; <config dir>/irciroh/agents/<nick> by default")
 	fs.StringVar(&l.operator, "operator", os.Getenv("IRCIROH_OPERATOR"), "endpoint key whose lines may change the agent's rules; $IRCIROH_OPERATOR by default")
 	fs.StringVar(&l.role, "role", "", "text to add to the agent's prompt")
-	fs.StringVar(&l.mod, "mod", os.Getenv("IRCIROH_MOD"), "plugin directory to load, for an agent that takes one; $IRCIROH_MOD by default")
+	fs.StringVar(&l.mod, "mod", os.Getenv("IRCIROH_MOD"), "plugin directory to load, for an agent that takes one; $IRCIROH_MOD by default, and for claude the mod built in")
 	dry := fs.Bool("n", false, "print the command and exit")
 	var nf nodeFlags
 	nf.register(fs)
@@ -329,6 +332,11 @@ func runLaunch(args []string) error {
 	if l.bin, err = os.Executable(); err != nil {
 		return fmt.Errorf("launch: finding this binary: %w", err)
 	}
+	// Claude Code gets the mod built into this binary unless it was
+	// given another.
+	if l.mod == "" && kind.name == "claude" {
+		l.mod, l.modFS = filepath.Join(l.dir, "mods", "irc-view"), true
+	}
 	argv := kind.argv(&l)
 
 	if *dry {
@@ -345,6 +353,11 @@ func runLaunch(args []string) error {
 	}
 	if err := os.MkdirAll(l.dir, 0o700); err != nil {
 		return fmt.Errorf("launch: %w", err)
+	}
+	if l.modFS {
+		if err := mods.Extract(mods.IRCView, "irc-view", l.mod); err != nil {
+			return fmt.Errorf("launch: writing the mod: %w", err)
+		}
 	}
 	if kind.files != nil {
 		files, err := kind.files(&l)

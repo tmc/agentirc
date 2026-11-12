@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+
+	"github.com/tmc/go-iroh/key"
 )
 
 // runJoin owns a node and keeps its conversation in files, with no
@@ -62,7 +64,14 @@ func serveDir(ctx context.Context, nf *nodeFlags, dir, join string) error {
 	defer closeNode()
 
 	toChat, toBridge := pipePair()
-	newBridge(node).attach(ctx, toChat)
+	b := newBridge(node)
+	b.dm = nf.dm
+	if nf.operator != "" {
+		if b.operator, err = key.ParseEndpointID(nf.operator); err != nil {
+			return fmt.Errorf("operator: %w", err)
+		}
+	}
+	b.attach(ctx, toChat)
 	defer toBridge.Close()
 	return serveChatLocked(ctx, toBridge, dir, nf.nick, join)
 }

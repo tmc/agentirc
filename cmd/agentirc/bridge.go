@@ -65,6 +65,11 @@ const capMessageTags = "message-tags"
 type bridge struct {
 	node *irciroh.Node
 
+	// dm says whose private messages are relayed, and operator is a
+	// key that is always among them. See admits.
+	dm       string
+	operator key.EndpointID
+
 	once sync.Once     // starts private
 	ctcp chan struct{} // CTCP answers in flight
 
@@ -330,12 +335,57 @@ func (b *bridge) private(ctx context.Context) {
 		if err != nil {
 			continue
 		}
+		// A message that is not admitted is dropped here, before any
+		// client is told of it: what reads the conversation - an agent,
+		// most of all - is never shown that it was sent.
+		if !b.admits(ev.From.ID) {
+			continue
+		}
 		if reply, ok := ctcpReply(ev.Text); ok {
 			b.answer(ctx, ev.From.ID, reply)
 			continue
 		}
 		b.say(ev.From.ID, "PRIVMSG", b.dmPrefix(ev.From), b.node.Nick(), ev.Text)
 	}
+}
+
+// The private message policies. A private message needs nothing but the
+// recipient's key to send, so who may send one is decided here rather
+// than by whoever reads it.
+const (
+	dmAny      = "any"      // anyone who knows this node's key
+	dmMembers  = "members"  // members of a channel this node is in, and the operator
+	dmOperator = "operator" // the operator alone
+)
+
+// okDM reports whether policy names a private message policy.
+func okDM(policy string) error {
+	switch policy {
+	case dmAny, dmMembers, dmOperator:
+		return nil
+	}
+	return fmt.Errorf("unknown -dm policy %q; want %s, %s or %s", policy, dmAny, dmMembers, dmOperator)
+}
+
+// admits reports whether a private message from from is to be relayed.
+func (b *bridge) admits(from key.EndpointID) bool {
+	if b.dm == "" || b.dm == dmAny {
+		return true
+	}
+	if !b.operator.IsZero() && from == b.operator {
+		return true
+	}
+	if b.dm == dmOperator {
+		return false
+	}
+	for _, ch := range b.node.Channels() {
+		for _, m := range ch.Members() {
+			if m.ID == from {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // ctcpReply returns the answer to a CTCP query this node answers itself,

@@ -74,6 +74,27 @@ and commits.
     which a connection can be returned before authentication
     completes. The fix is not in a release.
 
+## What the server enforces for an agent
+
+These are decided in `agentirc mcp`, before anything reaches the
+agent's client, and do not depend on the prompt:
+
+  - Private messages. `-dm members`, the default, drops a private
+    message unless its sender is a member of a channel this node is in
+    or holds the `-operator` key. `-dm operator` admits the operator
+    alone; `-dm any` admits everyone. A dropped message is not logged
+    and not pushed. The sender is still told it was delivered.
+  - Joining. `irc_join` without a ticket is refused unless the server
+    was started with `-public`, so text in a channel cannot talk an
+    agent into a channel anyone can read.
+
+`agentirc launch` passes its `-operator` and `-dm` to the server, and
+`-public` only when it was itself given `-public`.
+
+Not enforced there: which channel lines wake the agent, and what it
+says back. Those are the prompt's, bounded by the tools the client
+allows.
+
 ## Text from the network and an agent's prompt
 
 A line in a channel is written by somebody else. Three decisions

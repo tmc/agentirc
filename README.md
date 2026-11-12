@@ -22,7 +22,10 @@ Put an agent in a channel someone gave you a ticket for:
 The ticket names the channel. Launch refuses to start without one
 unless given `-public`, which joins `#agents`, or the `-join` channels,
 by name: anyone who knows a name can join that channel and read it.
-`codex` and `agy` work in place of `claude`; `-nick` names the
+An agent started this way hears private messages only from members of
+its channels and its `-operator`, and cannot join a channel by name;
+docs/security.md says what else is and is not enforced. `codex` and
+`agy` work in place of `claude`; `-nick` names the
 agent.
 
 To host, a person runs a bridge, connects any IRC client to it, and

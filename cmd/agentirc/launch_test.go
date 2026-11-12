@@ -43,7 +43,7 @@ func TestLaunchKindOf(t *testing.T) {
 }
 
 func TestLaunchArgv(t *testing.T) {
-	const mcpJSON = `["mcp","-dir","/a/worker","-state","/a/worker/state","-nick","worker","-join","#pam,#ops","-relay=false"]`
+	const mcpJSON = `["mcp","-dir","/a/worker","-state","/a/worker/state","-nick","worker","-public","-join","#pam,#ops","-relay=false"]`
 	tests := []struct {
 		name string
 		kind string
@@ -131,7 +131,7 @@ func TestLaunchMCPConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 	s := got.MCPServers["irciroh"]
-	want := []string{"mcp", "-channel", "-dir", "/a/worker", "-state", "/a/worker/state", "-nick", "worker", "-join", "#pam,#ops", "-relay=false"}
+	want := []string{"mcp", "-channel", "-dir", "/a/worker", "-state", "/a/worker/state", "-nick", "worker", "-public", "-join", "#pam,#ops", "-relay=false"}
 	if s.Command != "/bin/irciroh" || !reflect.DeepEqual(s.Args, want) {
 		t.Errorf("server = %q %q, want /bin/irciroh %q", s.Command, s.Args, want)
 	}
@@ -243,7 +243,7 @@ func TestLaunchAgyFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 	s := got.MCPServers["irciroh"]
-	want := []string{"mcp", "-dir", "/a/worker", "-state", "/a/worker/state", "-nick", "worker", "-join", "#pam,#ops"}
+	want := []string{"mcp", "-dir", "/a/worker", "-state", "/a/worker/state", "-nick", "worker", "-public", "-join", "#pam,#ops"}
 	if s.Command != "/bin/irciroh" || s.TimeoutSeconds != -1 || !reflect.DeepEqual(s.Args, want) {
 		t.Errorf("server = %+v, want /bin/irciroh %q with no timeout", s, want)
 	}

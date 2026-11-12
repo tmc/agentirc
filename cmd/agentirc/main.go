@@ -10,7 +10,7 @@
 //	agentirc join -dir path [-join #a,#b] [node flags]
 //	agentirc wait -dir path -target #channel [-match regexp] [-for 1m] [-history]
 //	agentirc agent -dir path -target #channel [-name nick] [-mention] -- command...
-//	agentirc mcp -dir path [-join #a,#b] [-wake command] [-dm-it2-session session-id] [-channel] [node flags]
+//	agentirc mcp -dir path [-join #a,#b] [-public] [-dm policy] [-operator key] [-wake command] [-dm-it2-session session-id] [-channel] [node flags]
 //	agentirc launch [-nick name] [-join #a,#b] [-ticket ticket] [-dir path] [-operator key] [-role text] [-mod dir] [-n] [node flags] -- command [args...]
 //
 // The node flags are the same for the commands that own a node:
@@ -205,7 +205,7 @@ func usage() {
 	agentirc join -dir path [-join #a,#b] [node flags]
 	agentirc wait -dir path -target #channel [-match regexp] [-for 1m] [-history]
 	agentirc agent -dir path -target #channel [-name nick] [-mention] -- command...
-	agentirc mcp -dir path [-join #a,#b] [-wake command] [-dm-it2-session session-id] [-channel] [node flags]
+	agentirc mcp -dir path [-join #a,#b] [-public] [-dm policy] [-operator key] [-wake command] [-dm-it2-session session-id] [-channel] [node flags]
 	agentirc launch [-nick name] [-join #a,#b] [-ticket ticket] [-dir path] [-operator key] [-role text] [-mod dir] [-n] [node flags] -- command [args...]
 node flags:
 	[-bind [::]:0] [-key path] [-nick name] [-state dir] [-recall=false] [-relay=false] [-relay-server url] [-rendezvous=false]
@@ -372,6 +372,10 @@ func warnOpenListener(w io.Writer, addr net.Addr) {
 // files itself; everything up to the node is the same program, so they
 // take the same flags and build it the same way.
 type nodeFlags struct {
+	// dm and operator are the private message policy of a node that
+	// keeps a directory. They are set by mcp, not registered for all.
+	dm         string
+	operator   string
 	bind       string
 	keyPath    string
 	nick       string

@@ -111,8 +111,9 @@ type Conversation struct {
 
 // An mcpServer serves one chat directory.
 type mcpServer struct {
-	root string
-	s    *mcp.Server
+	public bool // whether irc_join may join by name
+	root   string
+	s      *mcp.Server
 
 	// peers is the pin store this renders against. A verdict is a fact
 	// about the store at the moment somebody asks rather than about the
@@ -161,11 +162,17 @@ func runMCP(ctx context.Context, args []string) error {
 	channel := fs.Bool("channel", false, "push what is said to the client as Claude Code channel events; this puts text from the network into the session unasked")
 	var nf nodeFlags
 	nf.register(fs)
+	fs.StringVar(&nf.dm, "dm", dmMembers, "whose private messages reach the agent: members of a channel this node is in and the operator, the operator alone, or any node")
+	fs.StringVar(&nf.operator, "operator", "", "endpoint key whose private messages are always let through")
+	public := fs.Bool("public", false, "let irc_join join a channel by name, without a ticket; anyone can read and join such a channel")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	if *dir == "" {
 		return fmt.Errorf("mcp: -dir is required")
+	}
+	if err := okDM(nf.dm); err != nil {
+		return fmt.Errorf("mcp: %w", err)
 	}
 	if err := os.MkdirAll(*dir, 0o700); err != nil {
 		return err
@@ -193,6 +200,7 @@ func runMCP(ctx context.Context, args []string) error {
 		}
 	}()
 	m := newMCPServer(*dir, *channel)
+	m.public = *public
 	// The doorbell is armed before the first sweep, so that the sweep
 	// which discovers a conversation does not also ring for everything
 	// ever said in it.
@@ -673,6 +681,12 @@ func (m *mcpServer) join(ctx context.Context, req *mcp.CallToolRequest, in joinI
 	}
 	if !strings.HasPrefix(in.Target, "#") {
 		return nil, joinOut{}, fmt.Errorf("%s is not a channel", in.Target)
+	}
+	// Joining by name is joining a channel open to anyone, and that is
+	// for whoever started this server to allow, not for whoever is
+	// talking to the agent.
+	if in.Ticket == "" && !m.public {
+		return nil, joinOut{}, fmt.Errorf("joining %s needs a ticket: this server was not started with -public", in.Target)
 	}
 	line := "JOIN " + in.Target
 	if in.Ticket != "" {

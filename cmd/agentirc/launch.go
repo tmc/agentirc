@@ -39,6 +39,7 @@ type launch struct {
 	role     string   // free text appended to the prompt
 	mod      string   // a plugin directory, for a client that takes one
 	modFS    bool     // mod is to be written from the copy built in
+	dm       string   // whose private messages reach the agent; empty for the server's default
 	node     []string // node flags to hand on to agentirc mcp
 	args     []string // the user's own arguments to the agent
 }
@@ -196,7 +197,13 @@ func (l *launch) mcpArgs(push bool) []string {
 	}
 	args = append(args, "-dir", l.dir, "-state", l.state, "-nick", l.nick)
 	if l.ticket == "" {
-		args = append(args, "-join", l.join)
+		args = append(args, "-public", "-join", l.join)
+	}
+	if l.operator != "" {
+		args = append(args, "-operator", l.operator)
+	}
+	if l.dm != "" {
+		args = append(args, "-dm", l.dm)
 	}
 	return append(args, l.node...)
 }
@@ -271,12 +278,13 @@ const launchFacts = "Facts you may state when asked: " +
 func runLaunch(args []string) error {
 	fs := flag.NewFlagSet("launch", flag.ExitOnError)
 	fs.Usage = func() {
-		fmt.Fprintf(fs.Output(), "usage: agentirc launch [-nick name] [-join #a,#b] [-ticket ticket] [-public] [-dir path] [-operator key] [-role text] [-mod dir] [-n] [node flags] -- command [args...]\n")
+		fmt.Fprintf(fs.Output(), "usage: agentirc launch [-nick name] [-join #a,#b] [-ticket ticket] [-public] [-dm policy] [-dir path] [-operator key] [-role text] [-mod dir] [-n] [node flags] -- command [args...]\n")
 		fs.PrintDefaults()
 	}
 	var l launch
 	fs.StringVar(&l.join, "join", os.Getenv("IRCIROH_JOIN"), "comma-separated channels to join; $IRCIROH_JOIN by default, then the ticket's channel, then with -public "+defaultChannel)
 	public := fs.Bool("public", false, "join by name, without a ticket, channels that anyone can read and join")
+	fs.StringVar(&l.dm, "dm", "", "whose private messages reach the agent: members, operator or any; members by default")
 	fs.StringVar(&l.ticket, "ticket", os.Getenv("IRCIROH_TICKET"), "ticket to join the first channel with, rather than by name; $IRCIROH_TICKET by default")
 	fs.StringVar(&l.dir, "dir", "", "directory to keep the agent's conversation in; <config dir>/irciroh/agents/<nick> by default")
 	fs.StringVar(&l.operator, "operator", os.Getenv("IRCIROH_OPERATOR"), "endpoint key whose lines may change the agent's rules; $IRCIROH_OPERATOR by default")
@@ -310,6 +318,11 @@ func runLaunch(args []string) error {
 	}
 	// A channel joined by name is open to anyone who knows the name, so
 	// that has to be asked for. A ticket says which channel it is for.
+	if l.dm != "" {
+		if err := okDM(l.dm); err != nil {
+			return fmt.Errorf("launch: %w", err)
+		}
+	}
 	if l.ticket == "" && !*public {
 		return fmt.Errorf("launch: no ticket: get one with agentirc invite, or pass -public to join by name a channel anyone can read and join")
 	}
